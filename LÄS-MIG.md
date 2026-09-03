@@ -1,88 +1,115 @@
 # Rimligt — designutkast
 
-En körbar demo av matteappen, uppdelad i **tre separata mini-appar** — en för elever, en för
-lärare, en för kommunen — precis som en riktig inloggning skulle separera dem. Byggd för att
-testa känslan och skruva på den, inte för att lanseras. Inget byggsteg, inga beroenden.
+En körbar demo av matteappen, uppdelad i **fem separata mini-appar** under två ingångar —
+**Elev** och **Personal** (Lärare / Rektor & mentor / Kommun) — precis som en riktig
+inloggning skulle separera dem. Byggd för att testa känslan och skruva på den, inte för
+att lanseras. Inget byggsteg, inga beroenden.
 
 ## Starta
-
-**Lokalt (rekommenderat):** kör en enkel server i mappen, annars delar inte elev-, lärar- och
-kommunappen samma `localStorage` (det är så "lärare publicerar en uppgift → eleven ser den"
-kan vara på riktigt klickbart i demon).
 
 ```bash
 python -m http.server 5177
 ```
 
-Gå sedan till `http://localhost:5177/rimligt/` — du landar på en liten växlare med tre kort:
-**Elev**, **Lärare**, **Kommun**. I en riktig version avgörs vilken av dem du ser av inloggningen,
-inte av ett val på en startsida — den finns bara för att kunna visa alla tre sida vid sida.
+Gå till `http://localhost:5177/rimligt/` — en liten växlare med två kort: **Elev** och
+**Personal**. Personal leder vidare till en egen växlare med **Lärare**, **Rektor & mentor**
+och **Kommun**. I en riktig version avgörs vilken vy du ser av inloggningen, inte av ett
+val på en startsida.
 
-Rent dubbelklick på `index.html` fungerar också för att titta runt, men cross-role-flödet
-(lärare pinnar → elev ser det) kan bete sig olika mellan webbläsare på `file://`.
+Kör via servern (inte bara dubbelklick på `index.html`) om du vill testa flöden som går
+mellan apparna — t.ex. att en lärare publicerar ett prov och eleven ser det — eftersom de
+delar `localStorage` bara när de körs från samma origin.
 
 ## Struktur
 
 ```
 rimligt/
-  index.html                 rollväxlare (bara en demo-startsida, tre länkar)
-  css/stil.css                allt utseende, delas av alla tre apparna
+  index.html                     rollväxlare: Elev / Personal
+  personal/index.html             personal-växlare: Lärare / Rektor & mentor / Kommun
+  css/stil.css                    allt utseende, delas av alla apparna
   js/
-    innehall.js                 läromedelsträdet: alla uppgifter, lektioner, kommun-demodata
-    delat.js                     delad infrastruktur: DOM-hjälp, lagring, ljud, talformatering,
-                                  bråk-/tallinjegrafik, de återanvända klasstabellerna
-    ikoner.js                    eget litet SVG-ikonset (inga emoji, inga externa beroenden)
-  elev/    index.html, elev-app.js      karta, lär, träna, prov, framsteg
-  larare/  index.html, larare-app.js    klassöversikt, skapa & pinna uppgifter, lektionsläge
-  kommun/  index.html, kommun-app.js    aggregerat läge per skola/lärare — inga elevnamn
+    innehall.js                     läromedelsträdet, årskurstaggning, kommun-demodata
+    delat.js                        DOM-hjälp, lagring, ljud, talformatering, bråk-/
+                                     tallinjegrafik, delade klasstabeller, Elevprofil
+    ikoner.js                       eget SVG-ikonset, inga emoji, inga externa beroenden
+  elev/    index.html, elev-app.js         karta, lär, träna, prov, framsteg, socialt
+  larare/  index.html, larare-app.js       klass, uppgifter & prov, lektionsläge, profil
+  rektor/  index.html, rektor-app.js       en skola, namngivna elever, elevprofil
+  kommun/  index.html, kommun-app.js       hela kommunen, aldrig namngivna elever
 ```
 
-`elev/`, `larare/` och `kommun/` är tre helt separata sidor med egen, kort meny — en elev
-laddar aldrig kod som ens innehåller en lärarflik. De körs från samma origin/server, vilket
-gör att de delar `localStorage` och kan simulera "riktig" skoldata utan en backend.
+## Vad som är nytt sedan förra rundan
 
-## Vad som finns
+**Bugfix**
+- Sidan "hoppade" ibland vid scroll i lektion/träning — två sticky-headers krockade.
+  Fixat med en uppmätt CSS-variabel (`--topp-h`) så de staplas rätt.
 
-| Del | Var | Kommentar |
-|---|---|---|
-| Karta med nivåringar per färdighet | Elev → Karta | |
-| **Lär** — guidad genomgång, kontrollfrågor | 📖-knappen i färdighetsarket | inkl. en **interaktiv** genomgång i Uppställning där du fyller i själv, kolumn för kolumn |
-| **Träna** — ledtrådsstege, rätta-om-fel | ⚡-knappen | efter första ledtråden erbjuds även "se ett liknande, genomgånget exempel" |
-| Rimlighetssteget | utvalda uppgifter | gissa storleken innan du räknar |
-| Riktiga bråk-/tallinjegrafiker | Lär-läget i Bråkform & Rimlighet | ett riktigt streck i mitten för 1/2, inte text — proof-of-concept i två färdigheter |
-| **Uppställningsverktyget** | Stödspår → Uppställning | egen knappsats, minnessiffror, **klicka på en siffra för att stryka över den och skriva ett justerat värde ovanför** (t.ex. vid lån) |
-| Prov | Elev → Prov | timer, ingen återkoppling, E/C/A-poäng + resultat per förmåga |
-| XP / streak / veckomål | överallt | |
-| **Skapa & pinna en uppgift** | Lärare → Uppgifter | publicerar direkt till elevens karta ("Från din lärare") |
-| Klassöversikt, per område/förmåga | Lärare → Klass | |
-| Lektionsläge | Lärare → Lektion | projicerbar klassdiskussion med (påhittad) svarsfördelning |
-| **Kommun-översikt** | Kommun → Översikt | aggregerat snitt för hela kommunen |
-| **Skolor & lärare, anonymiserad drill-in** | Kommun → Skolor & lärare | klicka in på en klass → elever visas som "Elev 1", "Elev 2" …, aldrig med namn |
-| Komma istället för punkt | sifferfält överallt | byts live medan du skriver, inte bara vid rättning |
-| Mörkt/ljust tema, ljud av/på | ⚙ i elevappen | |
+**Årskurs 7/8/9**
+- Varje färdighet har nu en årskurstagg, sekvenserad efter Matteboken.se:s kapitelordning
+  (vår egen tolkning av *ordningen* — Lgr22 delar inte upp innehållet år för år).
+- Kartan har filterchips **Alla / Åk 7 / Åk 8 / Åk 9 / Extra repetition**.
 
-**Testa särskilt detta:**
+**Historik**
+- Varenda gjord uppgift, någonsin, med antal försök — `#/historik`, länkad från Framsteg.
 
-1. **Lärare → Uppgifter**: publicera en uppgift, gå till elev-appen (samma server) och se den
-   dyka upp pinnad överst på kartan — hela flödet fungerar på riktigt inom demon.
-2. **Elev → Stödspår → Uppställning → Lär**: den guidade genomgången där du själv fyller i
-   entalen, minnessiffran, tiotalen osv, en kolumn i taget.
-3. **Elev → Stödspår → Uppställning → Träna**: klicka på en siffra i det övre talet för att
-   stryka över den och skriva ett justerat värde ovanför.
-4. **Kommun → Skolor & lärare**: klicka in på en lärare — kontrollera att inga riktiga elevnamn
-   någonsin syns.
+**Prov ombyggt**
+- "Prov" visar nu bara det din lärare faktiskt publicerat till klassen (eller låst upp med
+  kod) — inga hårdkodade nationella-stiliserade prov längre.
+- De gamla delprov B/D lever kvar som **Övningspass** på Kartan, med full återkoppling
+  (ledtrådar, rättning direkt) — det är övning, inte ett skarpt prov.
+- Lärare → Uppgifter har nu även **Skapa & publicera ett prov**: välj en mall eller kryssa
+  ihop egna uppgifter, sätt tid/hjälpmedel/kod, publicera.
 
-## Så skruvar du på den
+**Personal vs Elev, + Rektor & mentor**
+- Rollerna är omstrukturerade: Elev för sig, Personal samlar Lärare/Rektor & mentor/Kommun.
+- Ny **Rektor & mentor**-vy: som kommunens tabeller, men scopad till en skola och **med**
+  riktiga elevnamn (till skillnad från kommunen, som aldrig visar namn).
+- Ny **Elevprofil** (delad komponent): klicka ett elevnamn i lärarens eller rektorns
+  klasstabell → nivåer, förmågor, och (bara för "Du" i din egen webbläsare) senaste försöken.
+- Läraren kan nu ändra sitt visningsnamn under en ny **Profil**-flik.
 
-**Färgtema** — `css/stil.css`, de ~40 första raderna. Byt `--primar` så följer hela appen med.
+**Socialt**
+- Elevens fjärde flik heter nu **Socialt**, med Chatt och Inställningar som underflikar.
+- Chatten är en **overkligt fungerande mockup** — påhittade trådar, skriv ett meddelande
+  och få ett fördröjt påhittat svar. En tydlig notis i gränssnittet säger att det inte är
+  en riktig chatt än och att den skulle behöva moderering och en backend innan den kan
+  vara skarp för minderåriga.
 
-**Ikoner** — `js/ikoner.js`. Eget handritat set (samma idiom som fria strecikonbibliotek,
-men ritat från grunden för att slippa licens-/korrekthetsrisk). Lägg till fler i `IKON_SVG`.
+**Kommun**
+- Skolor & lärare-tabellen visar nu vilket ämne läraren undervisar i.
 
-**Lägg till en uppgift** — `js/innehall.js`. Kopiera en befintlig uppgift i valfri färdighet.
+**Ljud**
+- Fler distinkta, syntetiserade toner: streak-dag, prov publicerat/upplåst, pinnad uppgift
+  (spelas bara första gången den dyker upp, inte vid varje sidladdning), helt pass klart
+  (rikare arpeggio), chatt skickat/mottaget. Fortfarande bara `ton()` i `delat.js` — inga
+  ljudfiler, ingen extern beroende.
 
-**Lägg till fler bråk-/tallinjegrafiker** — sätt `visual: {typ:'brak', taljare, namnare}` eller
-`visual: {typ:'tallinje', fran, till, punkt}` på valfritt lektionssteg i `innehall.js`.
+## Testa särskilt detta
+
+1. **Lärare → Uppgifter → Skapa & publicera ett prov**: välj mallen "Startkoll åk 9",
+   publicera, kopiera koden. Gå till elev-appen, testa både att provet ligger listat
+   automatiskt OCH att kodfältet låser upp det.
+2. **Elev → Karta → Övningspass → Delprov B**: kontrollera att det ger ledtrådar och
+   rättar direkt (övning), till skillnad från ett publicerat prov (ingen feedback förrän
+   du lämnar in).
+3. **Elev → Karta → filterchips**: byt mellan Åk 7/8/9, se att bara rätt färdigheter visas.
+4. **Rektor & mentor → öppna en klass → klicka ett elevnamn**: elevprofilen öppnas med
+   riktigt namn. Gör samma sak i Kommun → Skolor & lärare → drilla ner: namnen ska vara
+   "Elev 1", "Elev 2" osv, aldrig riktiga.
+5. **Elev → Socialt → Chatt**: öppna en tråd, skicka ett meddelande, se det påhittade svaret.
+6. **Elev → Framsteg → Se all historik**: gör några uppgifter (rätt och fel) först.
+
+## Vad som medvetet INTE finns
+
+Riktiga konton/inloggning (växlarna är bara demoväxlare) · databas (allt sparas i
+webbläsarens `localStorage`) · en riktig chatt (se notisen i appen) · auto-genererade
+uppgifter (knappen finns, avsiktligt inaktiverad) · AI-funktioner · geometri- och
+statistikområdena som egna färdigheter · flerspråkighet · uppställning för division och
+tvåsiffrig multiplikation · serverkontroll av provkoder (se nedan).
+
+**Värt att komma ihåg om det här någonsin blir skarpt:** kodfältet för att låsa upp prov
+är helt okej nu (allt är klientsidan), men skulle behöva bli en riktig servervaliderad
+kontroll innan det hanterar riktiga elever — inte bara ett objekt i webbläsaren.
 
 ## Innehållet
 
@@ -90,18 +117,8 @@ Ca 60 uppgifter över 12 färdigheter, kalibrerade mot de frisläppta nationella
 matematik åk 9 från 2016/17 och 2018/19 (Skolverket / PRIM-gruppen) — omskrivna, inte
 kopierade. `kalla`-fältet visar vilken np-uppgift varje övning är byggd efter. Förmågekoderna
 **P B M R K** och **E/C/A**-poängen följer PRIM-gruppens egen kodning i bedömningsanvisningarna.
-
-## Vad som medvetet INTE finns
-
-Riktiga konton/inloggning (rollväxlaren är bara en demoväxlare) · databas (allt sparas i
-webbläsarens `localStorage`) · auto-genererade uppgifter (knappen finns, avsiktligt
-inaktiverad — "kommande uppdatering") · AI-funktioner · geometri- och statistikområdena ·
-flerspråkighet · uppställning för division och tvåsiffrig multiplikation · bråk-/tallinje-
-grafik utanför de två färdigheter som har det.
-
-Det här är ett designutkast. Ingenting här är byggt för att tåla riktiga elever eller
-riktig elevdata — se avsnittet om GDPR/datalagring i produktspecifikationen för vad som
-faktiskt krävs innan en skarp version kan hantera elevdata.
+Årskursordningen är inspirerad av Matteboken.se:s kapitelstruktur (Mattecentrum) — egen
+tolkning av ordningen, ingen kopierad text (deras material är CC BY-NC-ND).
 
 ## Tillgänglighet
 

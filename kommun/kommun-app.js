@@ -29,7 +29,7 @@ function rita() {
 function topprad() {
   return el('header', { klass: 'topp' },
     el('div', { klass: 'topp-inner bred' },
-      el('a', { klass: 'markesnamn', href: '../', style: 'text-decoration:none' },
+      el('a', { klass: 'markesnamn', href: '../personal/', style: 'text-decoration:none' },
         'Rimligt', el('i', {}, '.'), el('span', { style: 'font-weight:400;color:var(--text-3);font-size:.8rem;margin-left:.5rem' }, 'kommun')),
       el('span', { klass: 'statchip' }, ikon('byggnad', 14), ' ' + KOMMUN_DEMO.namn)));
 }
@@ -79,9 +79,9 @@ function skolorvy() {
   });
 
   const tabell = el('table', { klass: 'klass' },
-    el('thead', {}, el('tr', {}, el('th', {}, 'Skola'), el('th', {}, 'Lärare'), el('th', {}, 'Klass'), el('th', {}, 'Elever'), el('th', {}, 'Snitt (0–5)'), el('th', {}))),
+    el('thead', {}, el('tr', {}, el('th', {}, 'Skola'), el('th', {}, 'Lärare'), el('th', {}, 'Klass'), el('th', {}, 'Ämne'), el('th', {}, 'Elever'), el('th', {}, 'Snitt (0–5)'), el('th', {}))),
     el('tbody', {}, rader.map(r => el('tr', {},
-      el('td', {}, r.skola), el('td', { klass: 'namn' }, r.larare), el('td', {}, r.klass), el('td', {}, String(r.elever.length)),
+      el('td', {}, r.skola), el('td', { klass: 'namn' }, r.larare), el('td', {}, r.klass), el('td', {}, r.amne), el('td', {}, String(r.elever.length)),
       el('td', {}, el('span', { klass: nivKlass(Math.round(r.helhet)) }, sv(r.helhet, 1))),
       el('td', {}, el('button', { klass: 'knapp tyst liten', onclick: () => borraNer(r) }, 'Öppna ', ikon('pilHoger', 14)))
     ))));

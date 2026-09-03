@@ -144,7 +144,8 @@ function tabellOmraden(elever) {
       OMRADEN.map(o => el('th', {}, o.kort)),
       el('th', {}, 'Senast aktiv'))),
     el('tbody', {}, elever.map(e => el('tr', { klass: e.jag ? 'jag' : '' },
-      el('td', { klass: 'namn' }, e.namn),
+      el('td', { klass: 'namn' },
+        el('button', { klass: 'knapp tyst liten', style: 'padding:.2rem .5rem', onclick: () => visaElevprofil(e, { historik: e.historik }) }, e.namn)),
       OMRADEN.map(o => el('td', {},
         el('span', { klass: nivKlass(e.niv[o.id] ?? 0), title: `Nivå ${e.niv[o.id] ?? 0} av 5` },
           String(e.niv[o.id] ?? 0)))),
@@ -164,7 +165,8 @@ function tabellFormagor(elever) {
       el('th', {}, 'Elev'),
       koder.map(k => el('th', { title: FORMAGOR[k].namn }, `${k} · ${FORMAGOR[k].namn}`)))),
     el('tbody', {}, elever.map(e => el('tr', { klass: e.jag ? 'jag' : '' },
-      el('td', { klass: 'namn' }, e.namn),
+      el('td', { klass: 'namn' },
+        el('button', { klass: 'knapp tyst liten', style: 'padding:.2rem .5rem', onclick: () => visaElevprofil(e, { historik: e.historik }) }, e.namn)),
       koder.map(k => {
         const v = e.form[k] ?? 0;
         const n = v >= 75 ? 5 : v >= 55 ? 4 : v >= 40 ? 3 : v >= 20 ? 2 : v > 0 ? 1 : 0;
@@ -178,6 +180,48 @@ function tabellFormagor(elever) {
       el('span', { klass: 'etikett' }, 'Vad kolumnerna betyder'),
       el('ul', { style: 'margin:.5rem 0 0;padding-left:1.15rem;font-size:.88rem;color:var(--text-2)' },
         koder.map(k => el('li', {}, el('b', {}, `${k} — ${FORMAGOR[k].namn}: `), FORMAGOR[k].text)))));
+}
+
+/* --------------------------------------------------------------- ELEVPROFIL */
+/* Delad av lärar- och rektorappen. `elev` har formen {namn, niv:{omradeId:0-5},
+   form:{P,B,M,R,K procent}}. `opts.historik` (frivilligt) är en array av försök i
+   samma form som elevappens S.historik — bara tillgänglig för "Du" i lärarens egen
+   webbläsare, eftersom demoelever inte har någon riktig historik. */
+function visaElevprofil(elev, opts = {}) {
+  const koder = ['P', 'B', 'M', 'R', 'K'];
+  const ringar = OMRADEN.filter(o => !o.stodsspar).map(o => {
+    const n = elev.niv[o.id] ?? 0;
+    return el('div', { style: 'display:flex;flex-direction:column;align-items:center;gap:.35rem' },
+      el('span', { klass: 'ring', style: `--p:${n * 20}` }, el('b', {}, `${n}/5`)),
+      el('small', { style: 'font-size:.74rem;color:var(--text-3);text-align:center' }, o.kort));
+  });
+  const staplar = koder.map(k => {
+    const pct = elev.form[k] ?? 0;
+    return el('div', { klass: 'formagestapel' },
+      el('span', { klass: 'kod' }, k), el('span', { klass: 'namn' }, FORMAGOR[k].namn),
+      el('span', { klass: 'varde' }, `${pct}%`),
+      el('span', { klass: 'stapel-spar', style: 'grid-column:1/-1;margin-top:-.2rem' }, el('span', { klass: 'stapel-fyll', style: `width:${pct}%` })));
+  });
+
+  let historikBlock;
+  if (opts.historik && opts.historik.length) {
+    const senaste = [...opts.historik].reverse().slice(0, 8);
+    historikBlock = el('div', { klass: 'facit' }, senaste.map(h => el('div', { klass: 'facitrad' + (h.ratt ? ' ok' : '') },
+      el('b', {}, `${h.ratt ? '✓' : '✗'} ${h.fraga.slice(0, 60)}${h.fraga.length > 60 ? '…' : ''}`),
+      el('small', {}, `försök ${h.forsokNr} · ${h.datum}`))));
+  } else {
+    historikBlock = el('p', { klass: 'tomtext', style: 'padding:1rem' }, 'Ingen historik tillgänglig för den här demoeleven.');
+  }
+
+  visaArk(el('div', {},
+    el('span', { klass: 'etikett' }, 'Elevprofil'),
+    el('h2', {}, elev.namn),
+    el('div', { style: 'display:flex;gap:1.1rem;flex-wrap:wrap;margin:1rem 0' }, ringar),
+    el('div', { klass: 'kort', style: 'margin-bottom:1rem' },
+      el('span', { klass: 'etikett' }, 'Förmågor'), el('div', { style: 'margin-top:.5rem' }, staplar)),
+    el('span', { klass: 'etikett' }, 'Senaste försöken'),
+    el('div', { style: 'margin-top:.5rem' }, historikBlock)
+  ));
 }
 
 /* --------------------------------------------------------------- VISUALISERINGAR */

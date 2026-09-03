@@ -49,6 +49,7 @@ const OMRADEN = [
   /* ---------------------------------------------------------------- */
   {
     id: 'prioritering',
+    arskurs: 7,
     namn: 'Prioriteringsregler',
     beskrivning: 'Vilket räknesätt går först?',
     centralt: 'Metoder för beräkningar med tal i bråk- och decimalform vid huvudräkning och skriftlig beräkning.',
@@ -120,6 +121,7 @@ const OMRADEN = [
   /* ---------------------------------------------------------------- */
   {
     id: 'brak',
+    arskurs: 7,
     namn: 'Bråkform',
     beskrivning: 'Addera, multiplicera och förenkla bråk',
     centralt: 'Reella tal och deras egenskaper samt beräkningar med tal i bråkform.',
@@ -210,6 +212,7 @@ const OMRADEN = [
   /* ---------------------------------------------------------------- */
   {
     id: 'potens',
+    arskurs: 8,
     namn: 'Potenser & grundpotensform',
     beskrivning: 'Stora och små tal, tiopotenser',
     centralt: 'Potensform för att uttrycka små och stora tal samt användning av prefix.',
@@ -286,6 +289,7 @@ const OMRADEN = [
   /* ---------------------------------------------------------------- */
   {
     id: 'rimlighet',
+    arskurs: 7,
     namn: 'Rimlighet & överslag',
     beskrivning: 'Är svaret ens möjligt?',
     centralt: 'Rimlighetsbedömning vid uppskattningar och beräkningar i vardagliga och matematiska situationer.',
@@ -369,6 +373,7 @@ const OMRADEN = [
   /* ---------------------------------------------------------------- */
   {
     id: 'procent',
+    arskurs: 8,
     namn: 'Procent & procentenheter',
     beskrivning: 'Förändring, förändringsfaktor och den klassiska fällan',
     centralt: 'Procent för att uttrycka förändring och förändringsfaktor samt beräkningar med procent i vardagliga situationer.',
@@ -482,6 +487,7 @@ const OMRADEN = [
 
   {
     id: 'variabel',
+    arskurs: 7,
     namn: 'Variabler & uttrycksvärde',
     beskrivning: 'Vad betyder bokstaven?',
     centralt: 'Innebörden av variabelbegreppet och dess användning i algebraiska uttryck, formler och ekvationer.',
@@ -556,6 +562,7 @@ const OMRADEN = [
 
   {
     id: 'forenkla',
+    arskurs: 8,
     namn: 'Förenkla uttryck',
     beskrivning: 'Dra ihop termer som hör ihop',
     centralt: 'Algebraiska uttryck, formler och ekvationer i situationer som är relevanta för eleven.',
@@ -622,6 +629,7 @@ const OMRADEN = [
 
   {
     id: 'ekvation',
+    arskurs: 8,
     namn: 'Ekvationer',
     beskrivning: 'Hitta det okända talet',
     centralt: 'Metoder för ekvationslösning.',
@@ -721,6 +729,7 @@ const OMRADEN = [
 
   {
     id: 'monster',
+    arskurs: 9,
     namn: 'Mönster & generalisering',
     beskrivning: 'Från figur 3 till figur n',
     centralt: 'Algebraiska uttryck och formler för att beskriva mönster och samband.',
@@ -795,6 +804,7 @@ const OMRADEN = [
 
   {
     id: 'vardagsproblem',
+    arskurs: 9,
     namn: 'Vardagsproblem',
     beskrivning: 'Problem utan färdig metod',
     centralt: 'Strategier för att lösa matematiska problem i olika situationer och områden samt värdering av valda strategier och metoder.',
@@ -882,6 +892,7 @@ const OMRADEN = [
 
   {
     id: 'modeller',
+    arskurs: 9,
     namn: 'Formler & modeller',
     beskrivning: 'Beskriv verkligheten med ett uttryck',
     centralt: 'Enkla matematiska modeller och hur de kan användas i olika situationer.',
@@ -1056,11 +1067,16 @@ const OMRADEN = [
 /* --------------------------------------------------------------------
    Provuppsättningar — används i provläget.
    -------------------------------------------------------------------- */
+/* typ:'ovning' = fritt tillgängliga övningspass, full återkoppling (kör i lage:'trana').
+   typ:'prov'   = mallar en lärare väljer att PUBLICERA — syns aldrig automatiskt för
+   eleven, bara efter att läraren skickat ut den via Uppgifter → Skapa & publicera ett
+   prov (skriver till det delade SKOLA.publiceradeProv). */
 const PROV = [
   {
     id: 'prov-b',
+    typ: 'ovning',
     namn: 'Delprov B — utan digitala verktyg',
-    beskrivning: 'Kortsvar. Miniräknare och formelblad ej tillåtna.',
+    beskrivning: 'Kortsvar, kalibrerat mot nationella provets delprov B. Full återkoppling — det här är övning, inte ett skarpt prov.',
     minuter: 40,
     hjalpmedel: 'Linjal',
     uppgifter: ['pri-1','pri-2','brk-1','brk-2','pot-1','pot-4','rim-1','rim-4','rim-3',
@@ -1068,8 +1084,9 @@ const PROV = [
   },
   {
     id: 'prov-d',
+    typ: 'ovning',
     namn: 'Delprov D — med digitala verktyg',
-    beskrivning: 'Längre uppgifter. Miniräknare och formelblad tillåtna.',
+    beskrivning: 'Längre uppgifter, kalibrerat mot nationella provets delprov D. Full återkoppling.',
     minuter: 50,
     hjalpmedel: 'Miniräknare, formelblad, linjal',
     uppgifter: ['var-p1','rim-5','var-p2','pro-1','pro-4','pro-5','var-p3','mod-1','mod-2',
@@ -1077,6 +1094,7 @@ const PROV = [
   },
   {
     id: 'prov-diagnos',
+    typ: 'prov',
     namn: 'Startkoll åk 9',
     beskrivning: 'Bred diagnos över alla områden. Ger läraren en första bild.',
     minuter: 25,
@@ -1124,7 +1142,7 @@ const KOMMUN_DEMO = {
       namn: 'Backagårdsskolan',
       larare: [
         {
-          namn: 'Sara Lindqvist', klass: '9A',
+          namn: 'Sara Lindqvist', klass: '9A', amne: 'Matematik',
           elever: [
             { namn: 'Wilma S.',  niv: { tal: 2, algebra: 1, problem: 1, stod: 3 }, form: { P: 24, B: 33, M: 40, R: 15, K: 12 }, senast: 'idag' },
             { namn: 'Melvin A.', niv: { tal: 3, algebra: 2, problem: 1, stod: 4 }, form: { P: 35, B: 44, M: 52, R: 28, K: 20 }, senast: 'igår' },
@@ -1137,7 +1155,7 @@ const KOMMUN_DEMO = {
           ]
         },
         {
-          namn: 'Omar Haddad', klass: '9B',
+          namn: 'Omar Haddad', klass: '9B', amne: 'Matematik',
           elever: [
             { namn: 'Signe H.',  niv: { tal: 4, algebra: 4, problem: 3, stod: 5 }, form: { P: 65, B: 70, M: 75, R: 58, K: 52 }, senast: 'idag' },
             { namn: 'Casper N.', niv: { tal: 3, algebra: 3, problem: 3, stod: 4 }, form: { P: 50, B: 58, M: 63, R: 42, K: 37 }, senast: 'idag' },
@@ -1153,9 +1171,9 @@ const KOMMUN_DEMO = {
     {
       namn: 'Norrskolan',
       larare: [
-        { namn: 'Erik Åström', klass: '9C', elever: DEMOKLASS.elever },
+        { namn: 'Erik Åström', klass: '9C', amne: 'Matematik', elever: DEMOKLASS.elever },
         {
-          namn: 'Lina Berg', klass: '9D',
+          namn: 'Lina Berg', klass: '9D', amne: 'Matematik',
           elever: [
             { namn: 'Otto V.',   niv: { tal: 5, algebra: 5, problem: 4, stod: 5 }, form: { P: 82, B: 86, M: 90, R: 75, K: 69 }, senast: 'idag' },
             { namn: 'Saga E.',   niv: { tal: 4, algebra: 4, problem: 4, stod: 5 }, form: { P: 70, B: 75, M: 79, R: 62, K: 57 }, senast: 'idag' },
@@ -1176,7 +1194,7 @@ const KOMMUN_DEMO = {
 /* Alla klasser (skola + lärare + elever) som en platt lista — bekvämt för rollup. */
 function allaKlasser() {
   return KOMMUN_DEMO.skolor.flatMap(skola =>
-    skola.larare.map(l => ({ skola: skola.namn, larare: l.namn, klass: l.klass, elever: l.elever })));
+    skola.larare.map(l => ({ skola: skola.namn, larare: l.namn, klass: l.klass, amne: l.amne || 'Matematik', elever: l.elever })));
 }
 
 /* Rent aggregerande hjälpfunktioner — ingen elevdata, bara snitt.

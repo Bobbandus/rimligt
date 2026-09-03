@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Rimligt — personalvyer: lärare, rektor & mentor, kommun.">
+<meta name="color-scheme" content="light dark">
+<title>Rimligt — personal</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Familjen+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap">
+
+<link rel="stylesheet" href="../css/stil.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧑‍🏫</text></svg>">
+</head>
+<body>
+
+<div class="hub">
+  <div class="hub-inner">
+    <a class="hub-markesnamn" href="../" style="text-decoration:none">Rimligt<i>.</i></a>
+    <h1 class="hub-rubrik">Vilken personalvy?</h1>
+    <p class="hub-under">Samma inloggning, olika behörighetsnivåer — i den här demon som tre separata sidor.</p>
+
+    <div class="hub-kort">
+      <a class="hub-lank" href="../larare/">
+        <span class="hub-ikon" id="ik-larare"></span>
+        <span class="hub-txt">
+          <b>Lärare</b>
+          <small>Egen klass, skapa uppgifter & prov, lektionsläge.</small>
+        </span>
+        <span class="hub-pil" id="ik-pil-1"></span>
+      </a>
+      <a class="hub-lank" href="../rektor/">
+        <span class="hub-ikon" id="ik-rektor"></span>
+        <span class="hub-txt">
+          <b>Rektor & mentor</b>
+          <small>Hela skolan, namngivna elever — bara för din egen skola.</small>
+        </span>
+        <span class="hub-pil" id="ik-pil-2"></span>
+      </a>
+      <a class="hub-lank" href="../kommun/">
+        <span class="hub-ikon" id="ik-kommun"></span>
+        <span class="hub-txt">
+          <b>Kommun</b>
+          <small>Aggregerat läge per skola och lärare — inga elevnamn.</small>
+        </span>
+        <span class="hub-pil" id="ik-pil-3"></span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<script src="../js/ikoner.js"></script>
+<script>
+  document.getElementById('ik-larare').append(ikon('bok', 26));
+  document.getElementById('ik-rektor').append(ikon('pokal', 26));
+  document.getElementById('ik-kommun').append(ikon('byggnad', 26));
+  ['ik-pil-1','ik-pil-2','ik-pil-3'].forEach(id => document.getElementById(id).append(ikon('pilHoger', 20)));
+</script>
+</body>
+</html>

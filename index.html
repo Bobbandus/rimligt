@@ -21,8 +21,8 @@
     <div class="hub-markesnamn">Rimligt<i>.</i></div>
     <h1 class="hub-rubrik">Vem loggar in?</h1>
     <p class="hub-under">
-      Det här är bara en demoväxlare för att kunna visa alla tre vyer sida vid sida.
-      I en riktig version avgörs rollen av inloggningen, inte av ett val på en startsida.
+      Det här är bara en demoväxlare för att kunna visa båda sidorna. I en riktig version
+      avgörs det av inloggningen, inte av ett val på en startsida.
     </p>
 
     <div class="hub-kort">
@@ -30,25 +30,17 @@
         <span class="hub-ikon" id="ik-elev"></span>
         <span class="hub-txt">
           <b>Elev</b>
-          <small>Karta, träning, prov och egna framsteg.</small>
+          <small>Karta, träning, prov, framsteg och socialt.</small>
         </span>
         <span class="hub-pil" id="ik-pil-1"></span>
       </a>
-      <a class="hub-lank" href="larare/">
-        <span class="hub-ikon" id="ik-larare"></span>
+      <a class="hub-lank" href="personal/">
+        <span class="hub-ikon" id="ik-personal"></span>
         <span class="hub-txt">
-          <b>Lärare</b>
-          <small>Klassöversikt, lektionsläge och egna uppgifter.</small>
+          <b>Personal</b>
+          <small>Lärare, rektor & mentor, kommun — samlade under en ingång.</small>
         </span>
         <span class="hub-pil" id="ik-pil-2"></span>
-      </a>
-      <a class="hub-lank" href="kommun/">
-        <span class="hub-ikon" id="ik-kommun"></span>
-        <span class="hub-txt">
-          <b>Kommun</b>
-          <small>Aggregerat läge per skola och lärare — inga elevnamn.</small>
-        </span>
-        <span class="hub-pil" id="ik-pil-3"></span>
       </a>
     </div>
 
@@ -59,9 +51,8 @@
 <script src="js/ikoner.js"></script>
 <script>
   document.getElementById('ik-elev').append(ikon('anvandare', 26));
-  document.getElementById('ik-larare').append(ikon('bok', 26));
-  document.getElementById('ik-kommun').append(ikon('byggnad', 26));
-  ['ik-pil-1','ik-pil-2','ik-pil-3'].forEach(id => document.getElementById(id).append(ikon('pilHoger', 20)));
+  document.getElementById('ik-personal').append(ikon('lager', 26));
+  ['ik-pil-1','ik-pil-2'].forEach(id => document.getElementById(id).append(ikon('pilHoger', 20)));
 </script>
 </body>
 </html>

@@ -42,7 +42,8 @@ const IKON_SVG = {
   filter:     `<polygon points="4,4 20,4 14,12.5 14,19 10,21 10,12.5"/>`,
   info:       `<circle cx="12" cy="12" r="8.5"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.6" r="1" fill="currentColor" stroke="none"/>`,
   papperskorg:`<path d="M5 6.5h14"/><path d="M9.5 6.5V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.7"/><path d="M7 6.5 7.8 19a1.5 1.5 0 0 0 1.5 1.4h5.4A1.5 1.5 0 0 0 16.2 19l.8-12.5"/><line x1="12" y1="10" x2="12" y2="16"/>`,
-  lager:      `<polygon points="12,3 21,8 12,13 3,8"/><polyline points="3,13 12,18 21,13"/><polyline points="3,17.5 12,22.5 21,17.5"/>`
+  lager:      `<polygon points="12,3 21,8 12,13 3,8"/><polyline points="3,13 12,18 21,13"/><polyline points="3,17.5 12,22.5 21,17.5"/>`,
+  chatt:      `<path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.5 4V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/><line x1="7" y1="9.5" x2="17" y2="9.5"/><line x1="7" y1="13" x2="13" y2="13"/>`
 };
 
 function ikon(namn, storlek = 20, klass = '') {

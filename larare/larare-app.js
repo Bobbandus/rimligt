@@ -8,7 +8,7 @@ const app = $('#app');
 
 /* Delad skoldata — SAMMA nyckel som elevappen läser. Lärarappen både
    läser och SKRIVER hit; elevappen läser bara. */
-const TOM_SKOLA = { pinnadeUppgifter: [] };
+const TOM_SKOLA = { pinnadeUppgifter: [], publiceradeProv: [] };
 const SKOLALAGRING = skapaLagring('rimligt.skola.v1', TOM_SKOLA);
 let SKOLA = SKOLALAGRING.las();
 function sparaSkola() { SKOLALAGRING.spara(SKOLA); }
@@ -16,7 +16,7 @@ function sparaSkola() { SKOLALAGRING.spara(SKOLA); }
 /* Läser (men ändrar aldrig) den inloggade webbläsarens elevdata, om den
    finns, så att "Du"-raden i klasstabellen visar riktig progress istället
    för påhittad demodata — samma trick som i original-demon. */
-const TOMT_ELEVSTATE = { xp: 0, fardigheter: {}, formagor: { P: 0, B: 0, M: 0, R: 0, K: 0 } };
+const TOMT_ELEVSTATE = { xp: 0, fardigheter: {}, formagor: { P: 0, B: 0, M: 0, R: 0, K: 0 }, historik: [] };
 function lasEgenElevdata() { return skapaLagring('rimligt.elev.v1', TOMT_ELEVSTATE).las(); }
 
 function beraknaMinaNivaer(elevState) {
@@ -52,21 +52,50 @@ function rita() {
   if (flik === 'klass') sida.append(klassvy());
   else if (flik === 'uppgifter') sida.append(uppgiftsvy());
   else if (flik === 'lektion') sida.append(lektionslage());
+  else if (flik === 'profil') sida.append(profilvy());
   app.append(sida);
 }
+
+/* Lärarens eget visningsnamn — egen liten lagring, skild från skoldata. */
+const TOM_LARAREPROFIL = { namn: '' };
+const LARAREPROFILLAGRING = skapaLagring('rimligt.larareprofil.v1', TOM_LARAREPROFIL);
+let LARAREPROFIL = LARAREPROFILLAGRING.las();
+function sparaLarareprofil() { LARAREPROFILLAGRING.spara(LARAREPROFIL); }
 
 function topprad() {
   return el('header', { klass: 'topp' },
     el('div', { klass: 'topp-inner bred' },
-      el('a', { klass: 'markesnamn', href: '../', style: 'text-decoration:none' }, 'Rimligt', el('i', {}, '.'), el('span', { style: 'font-weight:400;color:var(--text-3);font-size:.8rem;margin-left:.5rem' }, 'lärare')),
+      el('a', { klass: 'markesnamn', href: '../personal/', style: 'text-decoration:none' },
+        'Rimligt', el('i', {}, '.'),
+        el('span', { style: 'font-weight:400;color:var(--text-3);font-size:.8rem;margin-left:.5rem' }, LARAREPROFIL.namn || 'lärare')),
       el('span', { klass: 'statchip' }, ikon('byggnad', 14), ' Klass 9C')
     ));
 }
 
 function flikar() {
   return el('div', { klass: 'flikar', role: 'tablist' },
-    [['klass', 'anvandare2', 'Klass'], ['uppgifter', 'penna', 'Uppgifter'], ['lektion', 'stapel', 'Lektion']].map(([id, ik, namn]) =>
+    [['klass', 'anvandare2', 'Klass'], ['uppgifter', 'penna', 'Uppgifter'], ['lektion', 'stapel', 'Lektion'], ['profil', 'anvandare', 'Profil']].map(([id, ik, namn]) =>
       el('button', { klass: 'flik', role: 'tab', 'aria-selected': flik === id ? 'true' : 'false', onclick: () => gå(id) }, ikon(ik, 15), ' ' + namn)));
+}
+
+/* ================================================================ PROFIL */
+function profilvy() {
+  const namnInp = el('input', { type: 'text', value: LARAREPROFIL.namn, placeholder: 'T.ex. Sara Lindqvist' });
+  const sparat = el('p', { klass: 'hjalptext dold' }, 'Sparat.');
+  return el('div', {},
+    el('div', { klass: 'larartopp' }, el('h1', {}, 'Profil')),
+    el('div', { klass: 'kort', style: 'max-width:420px' },
+      el('span', { klass: 'etikett' }, 'Visningsnamn'),
+      el('p', { style: 'font-size:.88rem;color:var(--text-2);margin:.4rem 0 .9rem' }, 'Visas i topraden istället för den generiska rubriken "lärare".'),
+      el('label', { style: 'display:block' }, namnInp),
+      el('button', {
+        klass: 'knapp', style: 'margin-top:.8rem', onclick: () => {
+          LARAREPROFIL.namn = namnInp.value.trim(); sparaLarareprofil();
+          sparat.classList.remove('dold'); setTimeout(() => sparat.classList.add('dold'), 1800);
+          rita();
+        }
+      }, 'Spara'),
+      sparat));
 }
 
 /* ================================================================ KLASS */
@@ -74,7 +103,7 @@ function klassvy() {
   const egen = lasEgenElevdata();
   const elever = [
     ...DEMOKLASS.elever,
-    { namn: 'Du', niv: beraknaMinaNivaer(egen), form: beraknaMinaFormagor(egen), senast: 'nu', jag: true }
+    { namn: 'Du', niv: beraknaMinaNivaer(egen), form: beraknaMinaFormagor(egen), senast: 'nu', jag: true, historik: egen.historik }
   ];
 
   const underflikar = el('div', { klass: 'flikar', style: 'margin-top:0' },
@@ -194,11 +223,105 @@ function uppgiftsvy() {
   }
 
   ritaFormular(); ritaLista();
+
+  /* ---- Skapa & publicera ett prov ---- */
+  const provFormular = el('div', { klass: 'kort', style: 'margin-top:1rem' });
+  const provLista = el('div', { klass: 'stig', style: 'margin-top:1rem' });
+  const valdaUppgifter = new Set();
+
+  function slumpKod() {
+    const t = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({ length: 6 }, () => t[Math.floor(Math.random() * t.length)]).join('');
+  }
+
+  function ritaProvLista() {
+    provLista.replaceChildren();
+    const aktiva = (SKOLA.publiceradeProv || []).filter(p => p.aktiv);
+    if (!aktiva.length) { provLista.append(el('p', { klass: 'tomtext' }, 'Inget prov publicerat än.')); return; }
+    aktiva.slice().reverse().forEach(p => {
+      provLista.append(el('div', { klass: 'facitrad ok', style: 'display:flex;align-items:center;gap:.8rem;border-left-color:var(--guld)' },
+        el('div', { style: 'flex:1' },
+          el('b', {}, p.namn),
+          el('small', { style: 'display:block;margin-top:.15rem' }, `${p.uppgiftIds.length} uppgifter · ${p.minuter} min · kod `),
+          el('span', { klass: 'eca-chip', style: 'margin-top:.2rem;display:inline-block' }, p.kod)),
+        el('button', { klass: 'knapp tyst liten', style: 'color:var(--fel)', onclick: () => { p.aktiv = false; sparaSkola(); ritaProvLista(); } },
+          ikon('papperskorg', 15))));
+    });
+  }
+
+  function ritaProvFormular() {
+    provFormular.replaceChildren();
+    const namnInp = el('input', { type: 'text', placeholder: 'T.ex. "Diagnos: bråk och procent"' });
+    const minInp = el('input', { type: 'number', min: '5', value: '25' });
+    const hjInp = el('input', { type: 'text', value: 'Miniräknare' });
+    const kodInp = el('input', { type: 'text', value: slumpKod(), style: 'text-transform:uppercase;font-family:var(--mono)' });
+
+    const mallVal = el('select', { style: 'width:100%;padding:.6rem .7rem;border:2px solid var(--linje);border-radius:var(--radie-s);background:var(--yta);color:var(--text);font-family:inherit;font-size:.95rem' },
+      el('option', { value: '' }, '— Bygg eget nedan —'),
+      PROV.filter(p => p.typ === 'prov').map(p => el('option', { value: p.id }, p.namn)));
+    mallVal.onchange = () => {
+      const mall = PROV.find(p => p.id === mallVal.value);
+      valdaUppgifter.clear();
+      if (mall) {
+        namnInp.value = mall.namn; minInp.value = mall.minuter; hjInp.value = mall.hjalpmedel;
+        mall.uppgifter.forEach(id => valdaUppgifter.add(id));
+      }
+      ritaKryssruteLista();
+    };
+
+    const kryssrutor = el('div', { style: 'max-height:260px;overflow-y:auto;border:1.5px solid var(--linje);border-radius:var(--radie-s);padding:.7rem .9rem;background:var(--yta-2)' });
+    function ritaKryssruteLista() {
+      kryssrutor.replaceChildren();
+      allaFardigheter().forEach(f => {
+        kryssrutor.append(el('p', { style: 'font-family:var(--display);font-weight:700;font-size:.85rem;margin:.6rem 0 .3rem' }, f.namn));
+        f.uppgifter.forEach(u => {
+          const cb = el('input', { type: 'checkbox', checked: valdaUppgifter.has(u.id), onchange: e => { e.target.checked ? valdaUppgifter.add(u.id) : valdaUppgifter.delete(u.id); } });
+          kryssrutor.append(el('label', { style: 'display:flex;gap:.5rem;align-items:flex-start;font-size:.85rem;padding:.15rem 0;cursor:pointer' },
+            cb, el('span', {}, u.fraga.slice(0, 60) + (u.fraga.length > 60 ? '…' : ''))));
+        });
+      });
+    }
+    ritaKryssruteLista();
+
+    provFormular.append(
+      el('span', { klass: 'etikett' }, 'Skapa & publicera ett prov'),
+      el('h3', { style: 'margin-bottom:.7rem' }, 'Nytt prov till klassen'),
+      el('div', { style: 'display:grid;gap:.7rem' },
+        felt('Utgå från en mall (valfritt)', mallVal),
+        felt('Namn', namnInp),
+        el('div', { style: 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem' },
+          felt('Minuter', minInp), felt('Hjälpmedel', hjInp), felt('Kod', kodInp)),
+        felt('Uppgifter (kryssa i, minst en)', kryssrutor)
+      ),
+      el('div', { style: 'margin-top:1rem' },
+        el('button', {
+          klass: 'knapp', onclick: () => {
+            if (!namnInp.value.trim() || !valdaUppgifter.size) { alert('Namn och minst en uppgift krävs.'); return; }
+            SKOLA.publiceradeProv = SKOLA.publiceradeProv || [];
+            SKOLA.publiceradeProv.push({
+              id: 'prv' + Date.now(), namn: namnInp.value.trim(),
+              uppgiftIds: [...valdaUppgifter], minuter: Number(minInp.value) || 25,
+              hjalpmedel: hjInp.value.trim() || 'Inga', kod: kodInp.value.trim().toUpperCase() || slumpKod(),
+              klass: DEMOKLASS.namn, publicerad: idag(), aktiv: true
+            });
+            sparaSkola();
+            valdaUppgifter.clear();
+            ritaProvFormular(); ritaProvLista();
+          }
+        }, ikon('skicka', 16), ' Publicera prov')
+      )
+    );
+  }
+  ritaProvFormular(); ritaProvLista();
+
   return el('div', {},
     el('div', { klass: 'larartopp' }, el('h1', {}, 'Uppgifter')),
     formulär,
     el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Pinnat just nu'), el('span', { klass: 'strec' })),
-    lista);
+    lista,
+    provFormular,
+    el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Publicerade prov'), el('span', { klass: 'strec' })),
+    provLista);
 }
 
 /* ============================================================= LEKTION */

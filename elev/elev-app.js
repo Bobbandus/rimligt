@@ -15,6 +15,8 @@ const TOMT_ELEVSTATE = {
   fardigheter: {},
   formagor: { P: 0, B: 0, M: 0, R: 0, K: 0 },
   provresultat: [],
+  historik: [],
+  settPinnade: [],
   installningar: { ljud: true, animationer: true, tema: 'auto' }
 };
 const ELEVLAGRING = skapaLagring('rimligt.elev.v1', TOMT_ELEVSTATE);
@@ -23,7 +25,7 @@ function sparaState() { ELEVLAGRING.spara(S); }
 
 /* Skoldata delad med lärarappen (samma origin/server → samma localStorage).
    Elevappen läser den här, men skriver aldrig till den. */
-const TOM_SKOLA = { pinnadeUppgifter: [] };
+const TOM_SKOLA = { pinnadeUppgifter: [], publiceradeProv: [] };
 const SKOLALAGRING = skapaLagring('rimligt.skola.v1', TOM_SKOLA);
 function lasSkola() { return SKOLALAGRING.las(); }
 
@@ -37,9 +39,18 @@ function niva(fardighet) {
   return Math.min(5, Math.round(andel * 5));
 }
 const XP_FOR = { E: 10, C: 20, A: 35 };
-const ljudRatt = () => ton([660, 880], 0.08, S.installningar.ljud);
-const ljudFel  = () => ton([220], 0.16, S.installningar.ljud);
-const ljudNiva = () => ton([523, 659, 784, 1047], 0.09, S.installningar.ljud);
+/* Ljudpalett — bara syntetiserade toner, inga filer. Varje "stund som betyder
+   något" får sin egen igenkännbara lilla melodi, istället för klickljud på
+   varenda knapp (som sliter ut sig snabbt och stör mer än det belönar). */
+const ljudRatt         = () => ton([660, 880], 0.08, S.installningar.ljud);
+const ljudFel          = () => ton([220], 0.16, S.installningar.ljud);
+const ljudNiva         = () => ton([523, 659, 784, 1047, 1319], 0.1, S.installningar.ljud);         // nivå upp — femtonigt uppåt
+const ljudStreak       = () => ton([880, 698, 880, 1109], 0.075, S.installningar.ljud);              // streak-dag — pigg liten stig
+const ljudProvKlart    = () => ton([784, 988], 0.11, S.installningar.ljud);                          // prov publicerat/upplåst
+const ljudPinnad       = () => ton([932, 1245], 0.07, S.installningar.ljud);                         // pinnad uppgift dyker upp
+const ljudPassKlart    = () => ton([523, 659, 784, 1047, 1319, 1568], 0.085, S.installningar.ljud);  // helt pass — rikare arpeggio
+const ljudSkickat      = () => ton([740], 0.06, S.installningar.ljud);
+const ljudSvarMottaget = () => ton([587, 880], 0.08, S.installningar.ljud);
 
 const BEROM = ['Rimligt. 🔥', 'Där satt den.', 'Du kokar.', 'Snyggt.', 'Exakt så.', 'Ren teknik.'];
 const TROST  = ['Nja. Kolla en gång till.', 'Nära — men inte riktigt.', 'Inte den här gången.', 'Testa igen.'];
@@ -70,10 +81,13 @@ function router() {
   if (del.length === 0)              return visaKarta();
   if (del[0] === 'lar'   && del[1])  return visaLektion(del[1]);
   if (del[0] === 'trana' && del[1])  return visaTraning(del[1]);
+  if (del[0] === 'ovning' && del[1]) return visaOvningspass(del[1]);
   if (del[0] === 'prov'  && del[1])  return visaProv(del[1]);
   if (del[0] === 'prov')             return visaProvlista();
   if (del[0] === 'framsteg')         return visaFramsteg();
-  if (del[0] === 'installningar')    return visaInstallningar();
+  if (del[0] === 'historik')         return visaHistorik();
+  if (del[0] === 'installningar')    return visaSocialt('installningar');   // alias, gammal länk
+  if (del[0] === 'socialt')          return visaSocialt(del[1] || 'chatt');
   return visaKarta();
 }
 window.addEventListener('hashchange', router);
@@ -81,11 +95,17 @@ window.addEventListener('hashchange', router);
 /* ============================================================ SKAL/NAV */
 function skal(innehall, { navFlik = 'karta' } = {}) {
   app.replaceChildren();
-  app.append(toppraden());
+  const topp = toppraden();
+  app.append(topp);
   const sida = el('div', { klass: 'sida' });
   sida.append(...[innehall].flat());
   app.append(sida);
   app.append(bottennav(navFlik));
+  /* .ovningstopp (i lektion/träning) sticky:ar under den här headern istället för
+     att överlappa den — se buggen med "hoppande" sida vid scroll. */
+  requestAnimationFrame(() => {
+    document.documentElement.style.setProperty('--topp-h', topp.offsetHeight + 'px');
+  });
 }
 
 function toppraden() {
@@ -99,10 +119,10 @@ function toppraden() {
 }
 
 const NAV = [
-  { id: 'karta',        hash: '#/',               namn: 'Karta',        ikon: 'karta' },
-  { id: 'prov',         hash: '#/prov',           namn: 'Prov',         ikon: 'penna' },
-  { id: 'framsteg',     hash: '#/framsteg',       namn: 'Framsteg',     ikon: 'stapel' },
-  { id: 'installningar', hash: '#/installningar', namn: 'Inställningar', ikon: 'kugghjul' }
+  { id: 'karta',    hash: '#/',         namn: 'Karta',    ikon: 'karta' },
+  { id: 'prov',     hash: '#/prov',     namn: 'Prov',     ikon: 'penna' },
+  { id: 'framsteg', hash: '#/framsteg', namn: 'Framsteg', ikon: 'stapel' },
+  { id: 'socialt',  hash: '#/socialt',  namn: 'Socialt',  ikon: 'chatt' }
 ];
 function bottennav(aktiv) {
   return el('nav', { klass: 'botten', 'aria-label': 'Huvudmeny' },
@@ -115,13 +135,27 @@ function bottennav(aktiv) {
 }
 
 /* ============================================================== KARTAN */
+let kartaFilter = 'alla';   // 'alla' | 7 | 8 | 9 | 'repetition'
+const KARTA_FILTER = [
+  { id: 'alla', namn: 'Alla' },
+  { id: 7, namn: 'Åk 7' },
+  { id: 8, namn: 'Åk 8' },
+  { id: 9, namn: 'Åk 9' },
+  { id: 'repetition', namn: 'Extra repetition' }
+];
+function matcharFilter(f) {
+  if (kartaFilter === 'alla') return true;
+  if (kartaFilter === 'repetition') { const st = fState(f.id); return st.gjorda.length > 0 && niva(f) < 5; }
+  return f.arskurs === kartaFilter;
+}
+
 function visaKarta() {
   const delar = [];
   const klarIdag = S.dagarKlara.includes(idag());
   delar.push(el('div', { klass: 'karta-topp' },
     el('h1', { klass: 'halsning' }, klarIdag ? 'Dagens mål klart 🎉' : 'Nu kör vi.'),
     el('p', { klass: 'halsning-under' },
-      klarIdag ? 'Allt över det här är bonus.' : 'Fyra minuter räcker för att hålla streaken.')
+      klarIdag ? 'Allt härifrån är extra repetition.' : 'Fyra minuter räcker för att hålla streaken.')
   ));
 
   const veckansDagar = senasteSjuDagar().filter(d => S.dagarKlara.includes(d)).length;
@@ -158,36 +192,52 @@ function visaKarta() {
     ));
   }
 
-  /* Pinnade uppgifter från läraren — delat state, skrivs av lärarappen */
+  /* Pinnade uppgifter och publicerade prov från läraren — delat state */
   const skola = lasSkola();
   const pinnade = (skola.pinnadeUppgifter || []).filter(p => p.aktiv);
-  if (pinnade.length) {
-    pinnade.forEach(p => uppdrag.append(el('button', {
-      klass: 'uppdragskort', onclick: () => visaPinnadUppgift(p)
-    },
-      el('span', { klass: 'uk-ikon' }, ikon('nal', 18)),
-      el('span', { klass: 'uk-txt' },
-        el('b', {}, `Från din lärare: ${p.titel || 'Ny uppgift'}`),
-        el('span', { klass: 'uk-under' }, 'Pinnad · tryck för att öppna')),
-      ikon('pilHoger', 18)
-    )));
-  } else {
-    uppdrag.append(el('button', { klass: 'uppdragskort', onclick: () => gå('#/prov/prov-diagnos') },
+  const nyaPinnade = pinnade.filter(p => !S.settPinnade.includes(p.id));
+  if (nyaPinnade.length) {
+    ljudPinnad();
+    S.settPinnade.push(...nyaPinnade.map(p => p.id));
+    sparaState();
+  }
+  pinnade.forEach(p => uppdrag.append(el('button', {
+    klass: 'uppdragskort', onclick: () => visaPinnadUppgift(p)
+  },
+    el('span', { klass: 'uk-ikon' }, ikon('nal', 18)),
+    el('span', { klass: 'uk-txt' },
+      el('b', {}, `Från din lärare: ${p.titel || 'Ny uppgift'}`),
+      el('span', { klass: 'uk-under' }, 'Pinnad · tryck för att öppna')),
+    ikon('pilHoger', 18)
+  )));
+  const aktivaProv = (skola.publiceradeProv || []).filter(p => p.aktiv);
+  if (aktivaProv.length) {
+    uppdrag.append(el('button', { klass: 'uppdragskort', onclick: () => gå('#/prov') },
       el('span', { klass: 'uk-ikon' }, ikon('mal', 19)),
       el('span', { klass: 'uk-txt' },
-        el('b', {}, 'Från din lärare: Startkoll åk 9'),
-        el('span', { klass: 'uk-under' }, '15 uppgifter · ca 25 min · provläge')),
+        el('b', {}, aktivaProv.length === 1 ? `Aktivt prov: ${aktivaProv[0].namn}` : `${aktivaProv.length} aktiva prov`),
+        el('span', { klass: 'uk-under' }, 'Från din lärare · se Prov-fliken')),
       ikon('pilHoger', 18)
     ));
   }
   delar.push(uppdrag);
 
+  delar.push(el('div', { klass: 'filterrad' },
+    KARTA_FILTER.map(fl => el('button', {
+      klass: 'knapp liten' + (kartaFilter === fl.id ? '' : ' tyst'),
+      onclick: () => { kartaFilter = fl.id; visaKarta(); }
+    }, fl.namn))));
+
+  let visadeOmraden = 0;
   OMRADEN.forEach(omr => {
+    const fardigheterHar = omr.fardigheter.filter(matcharFilter);
+    if (!fardigheterHar.length) return;
+    visadeOmraden++;
     delar.push(el('div', { klass: 'omradesrubrik' },
       el('h2', {}, omr.namn), el('span', { klass: 'strec' }),
       omr.stodsspar ? el('span', { klass: 'etikett' }, 'stöd') : null));
     const stig = el('div', { klass: 'stig' });
-    omr.fardigheter.forEach(f => {
+    fardigheterHar.forEach(f => {
       const n = niva(f);
       const formagorIF = [...new Set(f.uppgifter.flatMap(u => u.formagor))];
       stig.append(el('button', { klass: 'nod' + (n === 5 ? ' klar' : ''), onclick: () => oppnaArk(f.id) },
@@ -200,6 +250,24 @@ function visaKarta() {
     });
     delar.push(stig);
   });
+  if (!visadeOmraden) {
+    delar.push(el('p', { klass: 'tomtext' },
+      kartaFilter === 'repetition' ? 'Inget att repetera än — börja en färdighet så dyker den upp här när den börjar blekna.'
+                                    : 'Inget i den här årskursen än.'));
+  }
+
+  const ovningspass = PROV.filter(p => p.typ === 'ovning');
+  if (kartaFilter === 'alla' && ovningspass.length) {
+    delar.push(el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Övningspass'), el('span', { klass: 'strec' })));
+    delar.push(el('p', { klass: 'hjalptext', style: 'margin:-.5rem 0 .8rem' },
+      'Längre, kalibrerade övningsset med full återkoppling — inte ett skarpt prov.'));
+    const ovningsrad = el('div', { klass: 'uppdrag' });
+    ovningspass.forEach(p => ovningsrad.append(el('button', { klass: 'uppdragskort', onclick: () => gå(`#/ovning/${p.id}`) },
+      el('span', { klass: 'uk-ikon' }, ikon('lager', 18)),
+      el('span', { klass: 'uk-txt' }, el('b', {}, p.namn), el('span', { klass: 'uk-under' }, `${p.uppgifter.length} uppgifter · ca ${p.minuter} min`)),
+      ikon('pilHoger', 18))));
+    delar.push(ovningsrad);
+  }
 
   skal(delar, { navFlik: 'karta' });
 }
@@ -438,6 +506,29 @@ function visaTraning(fardighetsId) {
   kor({ uppgifter: pass, fardighet: f, lage: 'trana', repetition, klar: (res) => visaPassklart(f, res, repetition) });
 }
 
+function visaOvningspass(provId) {
+  const p = PROV.find(x => x.id === provId && x.typ === 'ovning');
+  if (!p) return gå('#/');
+  const uppgifter = p.uppgifter.map(id => hittaUppgift(id)?.uppgift).filter(Boolean);
+  if (!uppgifter.length) return gå('#/');
+  kor({ uppgifter, lage: 'trana', repetition: false, klar: res => visaOvningsPassKlart(p, res) });
+}
+
+function visaOvningsPassKlart(p, resultat) {
+  const ratta = resultat.filter(r => r.korrekt).length;
+  const totalXp = resultat.reduce((s, r) => s + (r.xp || 0), 0);
+  ljudPassKlart();
+  skal(el('div', { style: 'padding-top:2rem;text-align:center' },
+    el('div', { style: 'display:flex;justify-content:center;color:var(--guld)' }, ikon(ratta === resultat.length ? 'pokal' : 'blixt', 52)),
+    el('h1', { style: 'font-size:1.8rem;margin:.6rem 0 .3rem' }, 'Övningspass klart.'),
+    el('p', { style: 'color:var(--text-2);margin:0 0 1.3rem' }, `${ratta} av ${resultat.length} rätt · ${p.namn}`),
+    el('div', { klass: 'kort', style: 'text-align:left' },
+      el('div', { klass: 'stapel', style: 'grid-template-columns:1fr auto' }, el('span', {}, 'XP från passet'), el('b', {}, `+${sv(totalXp)}`))),
+    el('div', { style: 'display:grid;gap:.55rem;margin-top:1.2rem' },
+      el('button', { klass: 'knapp bred stor', onclick: () => gå('#/') }, 'Tillbaka till kartan'))
+  ), { navFlik: 'karta' });
+}
+
 function korPinnadUppgift(p) {
   const u = {
     id: 'pinnad-' + p.id, typ: p.typ || 'number', niva: 3, eca: 'C',
@@ -648,16 +739,26 @@ function kor({ uppgifter, fardighet, lage, repetition = false, klar, prov = null
       if (lage !== 'prov') inp.classList.add(korrekt ? 'ratt' : 'fel');
     }
 
-    if (lage === 'prov') { besvarad = true; resultat.push({ uppgift: u, korrekt, svar }); nastaUppgift(); return; }
+    if (lage === 'prov') {
+      besvarad = true; resultat.push({ uppgift: u, korrekt, svar });
+      registreraForsok(u, fardighet, korrekt, 0, 'prov');
+      nastaUppgift(); return;
+    }
+
+    /* fardighet är satt vid vanlig träning; vid övningspass/pinnade uppgifter som
+       spänner över flera färdigheter slås rätt färdighet upp per uppgift istället. */
+    const uFardighet = fardighet || hittaUppgift(u.id)?.fardighet;
 
     if (korrekt) {
       besvarad = true; felIRad = 0;
-      const xp = repetition ? 0 : tilldelaXp(u, fardighet, ledtradsSteg);
+      const xp = (repetition || !uFardighet) ? 0 : tilldelaXp(u, uFardighet, ledtradsSteg);
       resultat.push({ uppgift: u, korrekt: true, ledtradar: ledtradsSteg, xp });
+      registreraForsok(u, uFardighet, true, xp, lage);
       ljudRatt(); visaRespons(true, xp, u);
     } else {
       felIRad++;
       resultat.push({ uppgift: u, korrekt: false, ledtradar: ledtradsSteg });
+      registreraForsok(u, uFardighet, false, 0, lage);
       ljudFel();
       if (S.installningar.animationer) {
         const box = $('#svarsyta'); box.classList.add('skaka'); setTimeout(() => box.classList.remove('skaka'), 320);
@@ -733,6 +834,15 @@ function kor({ uppgifter, fardighet, lage, repetition = false, klar, prov = null
   rita();
 }
 
+/* Loggar VARJE försök (rätt eller fel) — inte bara första rätt som ger XP.
+   Driver #/historik-sidan i Fas 3. */
+function registreraForsok(u, fardighet, ratt, xp, lage) {
+  const fardighetId = fardighet?.id || hittaUppgift(u.id)?.fardighet?.id || null;
+  const forsokNr = S.historik.filter(h => h.uppgiftId === u.id).length + 1;
+  S.historik.push({ uppgiftId: u.id, fardighetId, fraga: u.fraga, ratt, forsokNr, xp: xp || 0, lage, datum: idag() });
+  sparaState();
+}
+
 function tilldelaXp(u, fardighet, ledtradar) {
   const st = fState(fardighet.id);
   if (st.gjorda.includes(u.id)) return 0;
@@ -753,6 +863,8 @@ function visaPassklart(f, resultat, repetition) {
   const nyaUppgifter = new Set(resultat.filter(r => r.korrekt && r.xp > 0).map(r => r.uppgift.id)).size;
   const nyDag = nyaUppgifter >= 3 ? registreraDag() : false;
   const formagorTranade = [...new Set(resultat.filter(r => r.korrekt).flatMap(r => r.uppgift.formagor || []))];
+  ljudPassKlart();
+  if (nyDag) setTimeout(ljudStreak, 260);
 
   skal(el('div', { style: 'padding-top:2rem;text-align:center' },
     el('div', { style: 'display:flex;justify-content:center;color:var(--guld)' }, ikon(ratta === resultat.length ? 'pokal' : 'blixt', 52)),
@@ -916,18 +1028,40 @@ function beraknaMinnen(u) {
 
 /* ================================================================ PROV */
 function visaProvlista() {
-  const kort = PROV.map(p => el('button', { klass: 'uppdragskort', onclick: () => gå(`#/prov/${p.id}`) },
+  const skola = lasSkola();
+  const alla = skola.publiceradeProv || [];
+  const aktiva = alla.filter(p => p.aktiv);
+
+  const kort = aktiva.map(p => el('button', { klass: 'uppdragskort', onclick: () => gå(`#/prov/${p.id}`) },
     el('span', { klass: 'uk-ikon' }, ikon('penna', 18)),
-    el('span', { klass: 'uk-txt' }, el('b', {}, p.namn), el('span', { klass: 'uk-under' }, `${p.uppgifter.length} uppgifter · ${p.minuter} min · ${p.hjalpmedel}`)),
+    el('span', { klass: 'uk-txt' }, el('b', {}, p.namn), el('span', { klass: 'uk-under' }, `${p.uppgiftIds.length} uppgifter · ${p.minuter} min · ${p.hjalpmedel}`)),
     ikon('pilHoger', 18)));
+
+  const kodFalt = el('input', { type: 'text', placeholder: 'T.ex. K7X2QM', style: 'text-transform:uppercase' });
+  const kodMeddelande = el('p', { klass: 'hjalptext' });
+  const kodrad = el('div', { klass: 'kort', style: 'display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap' },
+    el('label', { style: 'flex:1;min-width:160px' },
+      el('span', { style: 'display:block;font-size:.82rem;color:var(--text-2);margin-bottom:.3rem;font-weight:600' }, 'Har du en kod?'),
+      kodFalt),
+    el('button', {
+      klass: 'knapp', onclick: () => {
+        const kod = kodFalt.value.trim().toUpperCase();
+        const träff = alla.find(p => (p.kod || '').toUpperCase() === kod && kod);
+        if (träff) { ljudProvKlart(); gå(`#/prov/${träff.id}`); }
+        else { ljudFel(); kodMeddelande.textContent = 'Ingen kod matchade. Kolla att du skrev rätt.'; }
+      }
+    }, 'Lås upp'));
+
   const tidigare = S.provresultat.slice(-4).reverse().map(r => el('div', { klass: 'facitrad ok', style: 'border-left-color:var(--primar)' },
     el('b', {}, r.namn), el('small', {}, `${r.datum} · ${r.ratta}/${r.antal} rätt · ${r.e}/${r.c}/${r.a} poäng`)));
 
   skal([
-    el('div', { klass: 'karta-topp' }, el('h1', { klass: 'halsning' }, 'Provläge'), el('p', { klass: 'halsning-under' }, 'Ingen återkoppling under provet. Allt kommer på slutet.')),
-    el('div', { klass: 'notis' }, el('b', {}, 'Så funkar det. '), 'Ingen XP, inga ledtrådar, ingen streak. Poängen anges i E/C/A precis som på nationella provet.'),
-    el('div', { klass: 'uppdrag' }, kort),
-    tidigare.length ? el('div', {}, el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Tidigare prov'), el('span', { klass: 'strec' })), el('div', { klass: 'facit' }, tidigare)) : null
+    el('div', { klass: 'karta-topp' }, el('h1', { klass: 'halsning' }, 'Prov'), el('p', { klass: 'halsning-under' }, 'Ingen återkoppling under provet. Allt kommer på slutet.')),
+    el('div', { klass: 'notis' }, el('b', {}, 'Så funkar det. '), 'Ingen XP, inga ledtrådar, ingen streak. Poängen anges i E/C/A precis som på nationella provet. Prov skapas och publiceras av din lärare.'),
+    kodrad, kodMeddelande,
+    el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Aktiva prov'), el('span', { klass: 'strec' })),
+    aktiva.length ? el('div', { klass: 'uppdrag' }, kort) : el('p', { klass: 'tomtext' }, 'Din lärare har inte publicerat något prov än.'),
+    tidigare.length ? el('div', {}, el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Tidigare resultat'), el('span', { klass: 'strec' })), el('div', { klass: 'facit' }, tidigare)) : null
   ], { navFlik: 'prov' });
 }
 function provTopprad(prov, avsluta) {
@@ -939,9 +1073,10 @@ function provTopprad(prov, avsluta) {
     el('button', { klass: 'knapp liten', onclick: avsluta }, 'Lämna in'));
 }
 function visaProv(provId) {
-  const p = PROV.find(x => x.id === provId);
+  const skola = lasSkola();
+  const p = (skola.publiceradeProv || []).find(x => x.id === provId);
   if (!p) return gå('#/prov');
-  const uppgifter = p.uppgifter.map(id => hittaUppgift(id)?.uppgift).filter(Boolean);
+  const uppgifter = p.uppgiftIds.map(id => hittaUppgift(id)?.uppgift).filter(Boolean);
   if (!uppgifter.length) return gå('#/prov');
   let sekunder = p.minuter * 60, timerId = null;
   kor({ uppgifter, lage: 'prov', prov: p, klar: res => { clearInterval(timerId); visaProvresultat(p, res); } });
@@ -956,6 +1091,7 @@ function visaProv(provId) {
   }, 1000);
 }
 function visaProvresultat(p, resultat) {
+  ljudProvKlart();
   const ratta = resultat.filter(r => r.korrekt).length;
   const poang = { e: 0, c: 0, a: 0 }, maxPoang = { e: 0, c: 0, a: 0 }, perFormaga = {};
   resultat.forEach(r => {
@@ -1029,12 +1165,127 @@ function visaFramsteg() {
         ? el('p', { klass: 'tomtext' }, 'Inget klart än. Börja på kartan.')
         : [...klaraFardigheter, ...paborjade].map(f => el('button', { klass: 'nod' + (niva(f) === 5 ? ' klar' : ''), onclick: () => gå(`#/trana/${f.id}`) },
             el('span', { klass: 'ring', style: `--p:${niva(f) * 20}` }, niva(f) === 5 ? ikon('bock', 16) : el('b', {}, `${niva(f)}/5`)),
-            el('span', { klass: 'nod-txt' }, el('b', {}, f.namn), el('small', {}, `${fState(f.id).gjorda.length} av ${f.uppgifter.length} uppgifter`)))))
+            el('span', { klass: 'nod-txt' }, el('b', {}, f.namn), el('small', {}, `${fState(f.id).gjorda.length} av ${f.uppgifter.length} uppgifter`))))),
+    el('button', { klass: 'knapp tyst bred', style: 'margin-top:1rem', onclick: () => gå('#/historik') },
+      ikon('lager', 16), ' Se all historik →')
+  ], { navFlik: 'framsteg' });
+}
+
+/* =========================================================== HISTORIK */
+let historikFilter = 'alla';   // 'alla' | 'ratt' | 'fel'
+function visaHistorik() {
+  const poster = [...S.historik].reverse();
+  const filtrerade = poster.filter(h => historikFilter === 'alla' || (historikFilter === 'ratt' ? h.ratt : !h.ratt));
+
+  const rader = filtrerade.map(h => {
+    const f = OMRADEN.flatMap(o => o.fardigheter).find(x => x.id === h.fardighetId);
+    return el('div', { klass: 'facitrad' + (h.ratt ? ' ok' : '') },
+      el('b', {}, `${h.ratt ? '✓' : '✗'} ${h.fraga.slice(0, 74)}${h.fraga.length > 74 ? '…' : ''}`),
+      el('small', {}, `${f ? f.namn : 'Från din lärare'} · försök ${h.forsokNr} · ${h.datum}${h.xp ? ` · +${h.xp} xp` : ''}${h.lage === 'prov' ? ' · prov' : ''}`));
+  });
+
+  skal([
+    el('div', { klass: 'karta-topp' },
+      el('h1', { klass: 'halsning' }, 'All din historik'),
+      el('p', { klass: 'halsning-under' }, `${S.historik.length} försök totalt, på ${new Set(S.historik.map(h => h.uppgiftId)).size} olika uppgifter`)),
+    el('div', { klass: 'filterrad' },
+      [['alla', 'Alla'], ['ratt', 'Rätt'], ['fel', 'Fel']].map(([id, namn]) =>
+        el('button', { klass: 'knapp liten' + (historikFilter === id ? '' : ' tyst'), onclick: () => { historikFilter = id; visaHistorik(); } }, namn))),
+    el('div', { klass: 'facit' },
+      rader.length ? rader : el('p', { klass: 'tomtext' }, 'Inget här än — gör en uppgift så dyker den upp.'))
   ], { navFlik: 'framsteg' });
 }
 
 /* ======================================================= INSTÄLLNINGAR */
-function visaInstallningar() {
+/* =============================================================== SOCIALT */
+function visaSocialt(underflik) {
+  const flikar = el('div', { klass: 'flikar', role: 'tablist' },
+    [['chatt', 'Chatt'], ['installningar', 'Inställningar']].map(([id, namn]) =>
+      el('button', { klass: 'flik', role: 'tab', 'aria-selected': underflik === id ? 'true' : 'false', onclick: () => gå(`#/socialt/${id}`) }, namn)));
+
+  skal([
+    el('div', { klass: 'karta-topp' }, el('h1', { klass: 'halsning' }, 'Socialt')),
+    flikar,
+    underflik === 'chatt' ? chattVy() : installningarVy()
+  ], { navFlik: 'socialt' });
+}
+
+/* ---- Chatt: en overkligt fungerande mockup, se anteckningen i UI:t ---- */
+const CHATT_TRADAR = [
+  {
+    id: 't1', titel: 'Fastnat på ekvationer 😩',
+    meddelanden: [
+      { fran: 'Elton D.', text: 'Har typ tolv olika sätt att lösa samma ekvation, orkar inte 😭' },
+      { fran: 'Alicia M.', text: 'Testa balansmetoden, funkar typ alltid — samma sak på båda sidor' },
+      { fran: 'Läraren', text: 'Bra tips Alicia! Kolla gärna genomgången i Lär-läget för Ekvationer också.' }
+    ]
+  },
+  {
+    id: 't2', titel: 'Procent vs procentenheter?? 🤯',
+    meddelanden: [
+      { fran: 'Tuva R.', text: 'Varför är 4%→6% inte bara "2%"?? provet sa fel på mig' },
+      { fran: 'Läraren', text: '2 är antalet procentENHETER (skillnaden). Den procentuella ökningen är 2/4 = 50%.' },
+      { fran: 'Noel B.', text: 'oh vänta det är faktiskt inte samma sak. tack' }
+    ]
+  },
+  {
+    id: 't3', titel: 'Bra jobbat-tråden 🎉',
+    meddelanden: [
+      { fran: 'Alicia M.', text: 'äntligen nivå 5 på bråkform!!' },
+      { fran: 'Vincent K.', text: 'snyggt 🔥' }
+    ]
+  }
+];
+const CHATT_SVAR = [
+  'Bra fråga! Kolla ledtrådarna om du fastnar igen.',
+  'Precis, det är ett vanligt ställe att slarva på.',
+  'Skriv gärna vilken uppgift det gäller så kan vi titta på den tillsammans.',
+  'Snyggt tänkt!'
+];
+let oppenTrad = null;
+function chattVy() {
+  if (oppenTrad) return chattTradVy(oppenTrad);
+  return el('div', {},
+    el('div', { klass: 'notis' }, el('b', {}, 'Demo. '),
+      'Ingen riktig chatt än — meddelanden når ingen på riktigt. Skulle kräva moderering och en riktig backend innan det här kan vara skarpt för minderåriga.'),
+    el('div', { klass: 'stig' }, CHATT_TRADAR.map(t => el('button', { klass: 'nod', onclick: () => { oppenTrad = t.id; visaSocialt('chatt'); } },
+      el('span', { klass: 'ring', style: '--p:100' }, ikon('chatt', 18)),
+      el('span', { klass: 'nod-txt' }, el('b', {}, t.titel), el('small', {}, `${t.meddelanden.length} meddelanden`))))));
+}
+function chattTradVy(tradId) {
+  const t = CHATT_TRADAR.find(x => x.id === tradId);
+  const lista = el('div', { klass: 'facit' });
+  function ritaMeddelanden() {
+    lista.replaceChildren(...t.meddelanden.map(m => el('div', { klass: 'facitrad' + (m.fran === 'Du' ? ' ok' : '') },
+      el('b', {}, m.fran), el('small', { style: 'display:block;margin-top:.1rem' }, m.text))));
+  }
+  ritaMeddelanden();
+  const inp = el('input', { type: 'text', placeholder: 'Skriv ett meddelande…' });
+  const skickaknapp = el('button', { klass: 'knapp', onclick: skicka }, ikon('skicka', 16));
+  function skicka() {
+    const text = inp.value.trim();
+    if (!text) return;
+    t.meddelanden.push({ fran: 'Du', text });
+    inp.value = '';
+    ritaMeddelanden();
+    ljudSkickat();
+    setTimeout(() => {
+      t.meddelanden.push({ fran: 'Läraren', text: slump(CHATT_SVAR) });
+      ritaMeddelanden();
+      ljudSvarMottaget();
+    }, 900);
+  }
+  inp.onkeydown = e => { if (e.key === 'Enter') skicka(); };
+
+  return el('div', {},
+    el('button', { klass: 'knapp tyst liten', style: 'margin-bottom:.8rem', onclick: () => { oppenTrad = null; visaSocialt('chatt'); } }, ikon('pilVanster', 14), ' Alla trådar'),
+    el('h3', { style: 'margin-bottom:.7rem' }, t.titel),
+    lista,
+    el('div', { style: 'display:flex;gap:.5rem;margin-top:.8rem' }, inp, skickaknapp));
+}
+
+/* ---- Inställningar (samma innehåll som tidigare, nu en underflik) ---- */
+function installningarVy() {
   function vippa(etikett, nyckel, beskrivning) {
     const knapp = el('button', {
       klass: 'vippa', role: 'switch', 'aria-checked': String(S.installningar[nyckel]), 'aria-label': etikett,
@@ -1042,14 +1293,13 @@ function visaInstallningar() {
     }, el('i', {}));
     return el('div', { klass: 'installningsrad' }, el('div', {}, el('span', {}, etikett), beskrivning ? el('p', { klass: 'hjalptext', style: 'margin:.1rem 0 0' }, beskrivning) : null), knapp);
   }
-  skal([
-    el('div', { klass: 'karta-topp' }, el('h1', { klass: 'halsning' }, 'Inställningar')),
+  return el('div', {},
     el('div', { klass: 'kort' }, vippa('Ljud', 'ljud', 'Korta signaler vid rätt och fel.'), vippa('Animationer', 'animationer', 'Följer även systemets inställning för minskad rörelse.')),
     el('div', { klass: 'kort', style: 'margin-top:.7rem' },
       el('span', { klass: 'etikett' }, 'Tema'),
       el('div', { style: 'display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap' },
         [['auto', 'Följ systemet'], ['ljust', 'Ljust'], ['morkt', 'Mörkt']].map(([v, n]) =>
-          el('button', { klass: 'knapp liten' + (S.installningar.tema === v ? '' : ' tyst'), onclick: () => { S.installningar.tema = v; sparaState(); satTema(S.installningar); visaInstallningar(); } }, n)))),
+          el('button', { klass: 'knapp liten' + (S.installningar.tema === v ? '' : ' tyst'), onclick: () => { S.installningar.tema = v; sparaState(); satTema(S.installningar); visaSocialt('installningar'); } }, n)))),
     el('div', { klass: 'kort', style: 'margin-top:.7rem' },
       el('span', { klass: 'etikett' }, 'Demo'),
       el('p', { style: 'font-size:.9rem;color:var(--text-2);margin:.5rem 0 .8rem' }, 'All progress sparas bara i den här webbläsaren.'),
@@ -1067,8 +1317,7 @@ function visaInstallningar() {
           }
         }, 'Fyll med exempeldata'),
         el('button', { klass: 'knapp tyst liten', style: 'color:var(--fel)', onclick: () => { if (!confirm('Nollställ all progress?')) return; S = structuredClone(TOMT_ELEVSTATE); sparaState(); gå('#/'); router(); } }, 'Nollställ allt'))),
-    el('p', { klass: 'kalla', style: 'text-align:center;margin-top:1.5rem' }, 'Rimligt — designutkast. Byggt efter frisläppta nationella prov åk 9, Skolverket / PRIM-gruppen.')
-  ], { navFlik: 'installningar' });
+    el('p', { klass: 'kalla', style: 'text-align:center;margin-top:1.5rem' }, 'Rimligt — designutkast. Byggt efter frisläppta nationella prov åk 9, Skolverket / PRIM-gruppen.'));
 }
 
 /* ================================================================ START */
