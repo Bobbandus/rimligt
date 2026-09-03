@@ -1,0 +1,668 @@
+/* ==========================================================================
+   RIMLIGT — utseende
+   Allt färg- och formspråk styrs av variablerna längst upp. Vill du ändra
+   känslan: ändra --primar och --radie, så följer resten med.
+   ========================================================================== */
+
+:root{
+  /* ljust tema */
+  --bg:#F4F3F8;
+  --yta:#FFFFFF;
+  --yta-2:#ECEAF4;
+  --yta-3:#DFDCEC;
+  --text:#16131F;
+  --text-2:#4A4459;
+  --text-3:#7C7590;
+  --linje:#D9D5E6;
+  --linje-stark:#C3BDD6;
+
+  --primar:#5B3FE8;
+  --primar-djup:#3B22B8;
+  --primar-mjuk:#EAE5FD;
+  --primar-text:#FFFFFF;
+
+  --ratt:#0FA97A;
+  --ratt-djup:#0A7D59;
+  --ratt-mjuk:#DCF6EE;
+
+  --fel:#E8365C;
+  --fel-djup:#B4213F;
+  --fel-mjuk:#FDE4EA;
+
+  --guld:#F0A317;
+  --guld-mjuk:#FDF0D9;
+
+  --radie:20px;
+  --radie-s:12px;
+  --knapp-djup:4px;
+
+  --display:"Bricolage Grotesque","Familjen Grotesk",system-ui,sans-serif;
+  --ui:"Familjen Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="ljust"]){
+    --bg:#0E0C16;
+    --yta:#191527;
+    --yta-2:#221D33;
+    --yta-3:#2E2744;
+    --text:#F2F0F8;
+    --text-2:#BDB6D0;
+    --text-3:#8C84A3;
+    --linje:#2E2844;
+    --linje-stark:#43395F;
+
+    --primar:#8B72FF;
+    --primar-djup:#5B3FE8;
+    --primar-mjuk:#221C3D;
+    --primar-text:#0E0C16;
+
+    --ratt:#2DD69C;
+    --ratt-djup:#12A377;
+    --ratt-mjuk:#102E26;
+
+    --fel:#FF6B8A;
+    --fel-djup:#D63E63;
+    --fel-mjuk:#33141F;
+
+    --guld:#FFC24D;
+    --guld-mjuk:#2E2210;
+  }
+}
+:root[data-tema="morkt"]{
+  --bg:#0E0C16; --yta:#191527; --yta-2:#221D33; --yta-3:#2E2744;
+  --text:#F2F0F8; --text-2:#BDB6D0; --text-3:#8C84A3;
+  --linje:#2E2844; --linje-stark:#43395F;
+  --primar:#8B72FF; --primar-djup:#5B3FE8; --primar-mjuk:#221C3D; --primar-text:#0E0C16;
+  --ratt:#2DD69C; --ratt-djup:#12A377; --ratt-mjuk:#102E26;
+  --fel:#FF6B8A; --fel-djup:#D63E63; --fel-mjuk:#33141F;
+  --guld:#FFC24D; --guld-mjuk:#2E2210;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--ui);font-size:16px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.02em;line-height:1.12;text-wrap:balance}
+button{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--primar);outline-offset:3px;border-radius:6px}
+.dold{display:none!important}
+.endast-skarmlasare{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+/* ====================== APPSKAL ====================== */
+#app{min-height:100%;display:flex;flex-direction:column}
+.sida{
+  flex:1;width:100%;max-width:760px;margin:0 auto;
+  padding:0 1rem 6.5rem;
+}
+.sida.bred{max-width:1180px}
+
+/* ---- topprad ---- */
+.topp{
+  position:sticky;top:0;z-index:40;background:var(--bg);
+  border-bottom:1px solid var(--linje);
+}
+.topp-inner{
+  max-width:760px;margin:0 auto;padding:.7rem 1rem;
+  display:flex;align-items:center;gap:.55rem;
+}
+.sida.bred ~ .topp .topp-inner,.topp-inner.bred{max-width:1180px}
+.markesnamn{
+  font-family:var(--display);font-weight:800;font-size:1.15rem;letter-spacing:-.04em;
+  color:var(--text);text-decoration:none;margin-right:auto;display:flex;align-items:baseline;gap:.3rem;
+}
+.markesnamn i{font-style:normal;color:var(--primar)}
+.statchip{
+  display:inline-flex;align-items:center;gap:.3rem;
+  font-family:var(--mono);font-size:.8rem;font-weight:700;
+  background:var(--yta);border:1.5px solid var(--linje);
+  padding:.3rem .55rem;border-radius:999px;font-variant-numeric:tabular-nums;
+}
+.statchip.streak{color:var(--guld);border-color:var(--guld)}
+.statchip.xp{color:var(--primar);border-color:var(--primar)}
+.ikonknapp{
+  background:var(--yta);border:1.5px solid var(--linje);border-radius:999px;
+  width:34px;height:34px;display:grid;place-items:center;cursor:pointer;padding:0;
+}
+.ikonknapp:hover{border-color:var(--primar-djup)}
+
+/* ---- bottennavigering ---- */
+.botten{
+  position:fixed;bottom:0;left:0;right:0;z-index:45;
+  background:var(--yta);border-top:1px solid var(--linje);
+  padding:.35rem .5rem calc(.35rem + env(safe-area-inset-bottom));
+}
+.botten-inner{
+  max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:.25rem;
+}
+.navknapp{
+  background:none;border:0;cursor:pointer;border-radius:var(--radie-s);
+  padding:.45rem .2rem .4rem;display:grid;justify-items:center;gap:.15rem;
+  font-size:.68rem;font-weight:600;color:var(--text-3);
+}
+.navknapp svg{width:22px;height:22px}
+.navknapp[aria-current="page"]{color:var(--primar);background:var(--primar-mjuk)}
+
+/* ====================== BYGGSTENAR ====================== */
+.kort{
+  background:var(--yta);border:1.5px solid var(--linje);border-radius:var(--radie);
+  padding:1.1rem 1.15rem;
+}
+.knapp{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  font-family:var(--display);font-weight:700;font-size:1rem;letter-spacing:-.01em;
+  padding:.8rem 1.3rem;border-radius:var(--radie-s);cursor:pointer;
+  background:var(--primar);color:var(--primar-text);
+  border:0;border-bottom:var(--knapp-djup) solid var(--primar-djup);
+  text-decoration:none;
+}
+.knapp:active{transform:translateY(var(--knapp-djup));border-bottom-width:0;margin-bottom:var(--knapp-djup)}
+.knapp.bred{width:100%}
+.knapp.stor{font-size:1.1rem;padding:1rem 1.4rem}
+.knapp.tyst{
+  background:var(--yta);color:var(--text);
+  border:1.5px solid var(--linje);border-bottom:var(--knapp-djup) solid var(--linje-stark);
+}
+.knapp.gron{background:var(--ratt);border-bottom-color:var(--ratt-djup);color:#fff}
+.knapp:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.knapp.liten{font-size:.85rem;padding:.5rem .85rem;--knapp-djup:3px}
+
+.etikett{
+  font-family:var(--mono);font-size:.66rem;font-weight:700;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--text-3);
+}
+.fm-chip{
+  font-family:var(--mono);font-size:.66rem;font-weight:700;
+  background:var(--yta-2);color:var(--text-2);
+  padding:.13rem .38rem;border-radius:5px;
+}
+.eca-chip{
+  font-family:var(--mono);font-size:.68rem;font-weight:700;
+  border:1.5px solid var(--primar);color:var(--primar);
+  padding:.05rem .35rem;border-radius:5px;font-variant-numeric:tabular-nums;
+}
+
+/* ====================== KARTAN ====================== */
+.karta-topp{padding:1.35rem 0 .5rem}
+.halsning{font-size:1.65rem;font-weight:800;margin-bottom:.15rem}
+.halsning-under{color:var(--text-2);font-size:.95rem}
+
+.malrad{
+  display:flex;align-items:center;gap:.7rem;margin:1rem 0 1.4rem;
+  background:var(--yta);border:1.5px solid var(--linje);border-radius:var(--radie);
+  padding:.85rem 1rem;
+}
+.malring{
+  --p:0;
+  width:46px;height:46px;border-radius:50%;flex:none;
+  background:conic-gradient(var(--primar) calc(var(--p)*1%),var(--yta-2) 0);
+  display:grid;place-items:center;
+}
+.malring::after{
+  content:"";width:34px;height:34px;border-radius:50%;background:var(--yta);
+  grid-area:1/1;
+}
+.malring span{
+  grid-area:1/1;z-index:1;font-family:var(--mono);font-size:.72rem;font-weight:700;
+}
+.malrad-text{flex:1;min-width:0}
+.malrad-text b{display:block;font-family:var(--display);font-size:1rem}
+.malrad-text small{color:var(--text-3);font-size:.83rem}
+
+.uppdrag{display:grid;gap:.6rem;margin-bottom:1.75rem}
+.uppdragskort{
+  display:flex;align-items:center;gap:.85rem;text-align:left;width:100%;
+  background:var(--yta);border:1.5px solid var(--linje);
+  border-bottom:var(--knapp-djup) solid var(--linje-stark);
+  border-radius:var(--radie);padding:.9rem 1rem;cursor:pointer;
+}
+.uppdragskort:hover{border-color:var(--primar);border-bottom-color:var(--primar-djup)}
+.uppdragskort.primar{
+  background:var(--primar);color:var(--primar-text);
+  border-color:var(--primar);border-bottom-color:var(--primar-djup);
+}
+.uppdragskort.primar .uk-under{color:rgba(255,255,255,.78)}
+:root[data-tema="morkt"] .uppdragskort.primar .uk-under,
+:root:not([data-tema="ljust"]) .uppdragskort.primar .uk-under{color:rgba(14,12,22,.7)}
+.uk-ikon{
+  width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:var(--yta-2);font-size:1.15rem;
+}
+.uppdragskort.primar .uk-ikon{background:rgba(255,255,255,.2)}
+.uk-txt{flex:1;min-width:0}
+.uk-txt b{display:block;font-family:var(--display);font-size:1rem;line-height:1.2}
+.uk-under{font-size:.83rem;color:var(--text-3);display:block;margin-top:.1rem}
+
+.omradesrubrik{
+  display:flex;align-items:center;gap:.6rem;margin:1.6rem 0 .8rem;
+}
+.omradesrubrik h2{font-size:1.15rem;font-weight:800}
+.omradesrubrik .strec{flex:1;height:1.5px;background:var(--linje)}
+
+.stig{display:grid;gap:.55rem}
+.nod{
+  display:flex;align-items:center;gap:.85rem;text-align:left;width:100%;
+  background:var(--yta);border:1.5px solid var(--linje);border-radius:var(--radie);
+  padding:.75rem .9rem;cursor:pointer;
+}
+.nod:hover{border-color:var(--primar)}
+.nod.klar{border-color:var(--ratt)}
+.ring{
+  width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;
+  --p:0;background:conic-gradient(var(--primar) calc(var(--p)*1%),var(--yta-2) 0);
+}
+.ring::after{content:"";grid-area:1/1;width:33px;height:33px;border-radius:50%;background:var(--yta)}
+.ring b{grid-area:1/1;z-index:1;font-family:var(--mono);font-size:.75rem;font-weight:700}
+.nod.klar .ring{background:var(--ratt)}
+.nod.klar .ring b{color:var(--ratt)}
+.nod-txt{flex:1;min-width:0}
+.nod-txt b{display:block;font-family:var(--display);font-size:.98rem;line-height:1.2}
+.nod-txt small{color:var(--text-3);font-size:.82rem}
+.nod-fm{display:flex;gap:.2rem;flex-wrap:wrap;margin-top:.25rem}
+
+/* ====================== MODAL ====================== */
+.overlagg{
+  position:fixed;inset:0;z-index:60;background:rgba(10,8,18,.55);
+  display:flex;align-items:flex-end;justify-content:center;padding:0;
+}
+@media (min-width:640px){.overlagg{align-items:center;padding:1rem}}
+.ark{
+  background:var(--yta);border-radius:var(--radie) var(--radie) 0 0;
+  width:100%;max-width:520px;padding:1.3rem 1.2rem 1.5rem;
+  border:1.5px solid var(--linje);border-bottom:0;
+  max-height:88vh;overflow-y:auto;
+}
+@media (min-width:640px){.ark{border-radius:var(--radie);border-bottom:1.5px solid var(--linje)}}
+.ark h2{font-size:1.35rem;margin-bottom:.25rem}
+.ark .centralt{
+  font-size:.83rem;color:var(--text-3);background:var(--yta-2);
+  border-radius:var(--radie-s);padding:.6rem .75rem;margin:.85rem 0;
+  border-left:3px solid var(--primar);
+}
+.ark-knappar{display:grid;gap:.55rem;margin-top:1.1rem}
+
+/* ====================== ÖVNING / LEKTION ====================== */
+.ovningstopp{
+  position:sticky;top:0;z-index:30;background:var(--bg);
+  padding:.7rem 0 .6rem;display:flex;align-items:center;gap:.7rem;
+}
+.stangknapp{
+  background:none;border:0;cursor:pointer;color:var(--text-3);
+  font-size:1.5rem;line-height:1;padding:.15rem .4rem;border-radius:8px;
+}
+.stangknapp:hover{color:var(--fel)}
+.progressspar{
+  flex:1;height:13px;background:var(--yta-2);border-radius:999px;overflow:hidden;
+}
+.progressfyll{
+  height:100%;background:var(--primar);border-radius:999px;width:0%;
+  transition:width .28s cubic-bezier(.2,.9,.3,1);
+}
+.progressfyll.gron{background:var(--ratt)}
+
+.uppgiftsyta{padding:.6rem 0 1rem}
+.uppg-meta{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.85rem}
+.fraga{
+  font-family:var(--display);font-weight:600;font-size:1.28rem;line-height:1.32;
+  margin:0 0 1.15rem;
+}
+@media (min-width:600px){.fraga{font-size:1.42rem}}
+
+/* svarsformer */
+.svarsyta{display:grid;gap:.55rem}
+.alt{
+  display:flex;align-items:center;gap:.7rem;text-align:left;width:100%;
+  background:var(--yta);border:2px solid var(--linje);
+  border-bottom:var(--knapp-djup) solid var(--linje-stark);
+  border-radius:var(--radie-s);padding:.85rem 1rem;cursor:pointer;
+  font-size:1rem;
+}
+.alt:hover:not(:disabled){border-color:var(--primar)}
+.alt .tangent{
+  font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--text-3);
+  border:1.5px solid var(--linje);border-radius:6px;padding:.05rem .32rem;flex:none;
+}
+.alt.vald{border-color:var(--primar);background:var(--primar-mjuk)}
+.alt.vald .tangent{border-color:var(--primar);color:var(--primar)}
+.alt.ratt{border-color:var(--ratt);background:var(--ratt-mjuk)}
+.alt.fel{border-color:var(--fel);background:var(--fel-mjuk)}
+.alt:disabled{cursor:default}
+
+.svarsfalt{
+  display:flex;align-items:center;gap:.6rem;
+}
+.svarsfalt input{
+  font-family:var(--mono);font-size:1.45rem;font-weight:700;
+  width:100%;max-width:260px;padding:.7rem .85rem;
+  background:var(--yta);color:var(--text);
+  border:2px solid var(--linje);border-radius:var(--radie-s);
+  text-align:center;
+}
+.svarsfalt input:focus{border-color:var(--primar);outline:none}
+.svarsfalt input.ratt{border-color:var(--ratt);background:var(--ratt-mjuk)}
+.svarsfalt input.fel{border-color:var(--fel);background:var(--fel-mjuk)}
+.svarsfalt .enhet{font-size:1rem;color:var(--text-2);font-weight:600}
+.hjalptext{font-size:.82rem;color:var(--text-3);margin-top:.4rem}
+
+/* uppställning */
+.uppst-yta{display:flex;justify-content:center;padding:.4rem 0 .2rem}
+.uppst{
+  display:grid;gap:4px;font-family:var(--mono);
+  background:var(--yta);border:1.5px solid var(--linje);
+  border-radius:var(--radie-s);padding:.9rem 1rem;
+}
+.uppst-rad{display:grid;gap:4px;align-items:center}
+.uppst-op{
+  font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--text-2);
+  display:grid;place-items:center;
+}
+.uppst-cell{
+  width:42px;height:48px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:1.4rem;font-weight:700;
+}
+.uppst-cell.fast{color:var(--text)}
+.uppst-cell.tom{}
+.uppst input{
+  width:42px;height:48px;padding:0;text-align:center;
+  font-family:var(--mono);font-size:1.4rem;font-weight:700;
+  background:var(--yta-2);color:var(--text);
+  border:2px solid var(--linje);border-radius:9px;
+}
+.uppst input:focus{border-color:var(--primar);background:var(--primar-mjuk);outline:none}
+.uppst input.minne{
+  width:42px;height:26px;font-size:.85rem;
+  background:var(--guld-mjuk);border-color:transparent;color:var(--guld);
+}
+.uppst input.minne:focus{border-color:var(--guld)}
+.uppst input.ratt{border-color:var(--ratt);background:var(--ratt-mjuk);color:var(--ratt-djup)}
+.uppst input.fel{border-color:var(--fel);background:var(--fel-mjuk);color:var(--fel-djup)}
+.uppst-strec{height:3px;background:var(--text);border-radius:2px;margin:2px 0}
+.knappsats{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;
+  max-width:340px;margin:.9rem auto 0;
+}
+.knappsats button{
+  font-family:var(--mono);font-size:1.1rem;font-weight:700;
+  padding:.6rem 0;border-radius:10px;cursor:pointer;
+  background:var(--yta);color:var(--text);
+  border:1.5px solid var(--linje);border-bottom:3px solid var(--linje-stark);
+}
+.knappsats button:active{transform:translateY(3px);border-bottom-width:0;margin-bottom:3px}
+.knappsats button.rensa{color:var(--fel);grid-column:span 2}
+
+/* ---- rimlighetssteget ---- */
+.rimlighet-ruta{
+  background:var(--guld-mjuk);border:1.5px solid var(--guld);
+  border-radius:var(--radie);padding:1rem 1.1rem;margin-bottom:1.1rem;
+}
+.rimlighet-ruta .etikett{color:var(--guld)}
+.rimlighet-ruta h3{font-size:1.05rem;margin:.3rem 0 .8rem}
+
+/* ---- ledtrådar ---- */
+.ledtrad{
+  background:var(--primar-mjuk);border-left:3px solid var(--primar);
+  border-radius:0 var(--radie-s) var(--radie-s) 0;
+  padding:.75rem .9rem;margin-top:.7rem;font-size:.95rem;
+}
+.ledtrad .etikett{color:var(--primar);display:block;margin-bottom:.2rem}
+.losningsruta{
+  background:var(--yta-2);border-radius:var(--radie-s);
+  padding:.85rem 1rem;margin-top:.8rem;
+}
+.losningsruta .etikett{display:block;margin-bottom:.45rem}
+.losningsruta ol{margin:0;padding-left:1.2rem;font-family:var(--mono);font-size:.88rem;line-height:1.75}
+.losningsruta li::marker{color:var(--text-3)}
+.kalla{font-size:.75rem;color:var(--text-3);margin-top:.7rem;font-style:italic}
+
+/* ---- responsraden ---- */
+.respons{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  background:var(--yta);border-top:2px solid var(--linje);
+  padding:.9rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  transform:translateY(102%);
+}
+.respons.visas{transform:translateY(0)}
+@media (prefers-reduced-motion:no-preference){
+  .respons{transition:transform .22s cubic-bezier(.2,.9,.3,1)}
+}
+.respons.ratt{background:var(--ratt-mjuk);border-top-color:var(--ratt)}
+.respons.fel{background:var(--fel-mjuk);border-top-color:var(--fel)}
+.respons-inner{
+  max-width:760px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+}
+.respons-txt{flex:1;min-width:180px}
+.respons-txt b{font-family:var(--display);font-size:1.15rem;display:block}
+.respons-txt span{font-size:.9rem;color:var(--text-2)}
+.respons.ratt .respons-txt b{color:var(--ratt-djup)}
+.respons.fel .respons-txt b{color:var(--fel-djup)}
+.xp-pop{
+  font-family:var(--mono);font-weight:700;font-size:.95rem;color:var(--ratt-djup);
+  background:var(--yta);border-radius:999px;padding:.2rem .6rem;border:1.5px solid var(--ratt);
+}
+
+.verktygsrad{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+
+/* ====================== LEKTION ====================== */
+.steg-kort{margin-bottom:1rem}
+.steg-kort h3{font-size:1.2rem;margin-bottom:.5rem}
+.steg-kort p{margin:0 0 .9rem;color:var(--text-2)}
+.exempel{
+  font-family:var(--mono);font-size:.95rem;line-height:1.9;
+  background:var(--yta-2);border-radius:var(--radie-s);padding:.8rem 1rem;
+  white-space:pre-wrap;
+}
+.stegprickar{display:flex;gap:.3rem;justify-content:center;margin:1.2rem 0}
+.stegprick{width:8px;height:8px;border-radius:50%;background:var(--linje-stark)}
+.stegprick.aktiv{background:var(--primar);width:22px;border-radius:999px}
+
+/* ====================== PROV ====================== */
+.provlage .topp,.provlage .botten{display:none}
+.provtopp{
+  position:sticky;top:0;z-index:30;background:var(--bg);
+  border-bottom:1.5px solid var(--linje);
+  padding:.7rem 0;display:flex;align-items:center;gap:.8rem;
+}
+.timer{
+  font-family:var(--mono);font-weight:700;font-size:1rem;
+  font-variant-numeric:tabular-nums;
+}
+.timer.brannande{color:var(--fel)}
+.provnummer{font-family:var(--mono);font-size:.85rem;color:var(--text-3);margin-left:auto}
+
+.resultatkort{margin-bottom:1rem}
+.resultat-stor{
+  font-family:var(--mono);font-size:2.6rem;font-weight:700;line-height:1;
+  color:var(--primar);
+}
+.stapelrad{display:grid;gap:.6rem;margin-top:.9rem}
+.stapel{display:grid;grid-template-columns:6.5rem 1fr 3.2rem;gap:.6rem;align-items:center;font-size:.87rem}
+.stapel-spar{height:12px;background:var(--yta-2);border-radius:999px;overflow:hidden}
+.stapel-fyll{height:100%;background:var(--primar);border-radius:999px}
+.stapel b{font-family:var(--mono);font-size:.8rem;text-align:right;font-variant-numeric:tabular-nums}
+
+.facit{display:grid;gap:.5rem;margin-top:.8rem}
+.facitrad{
+  background:var(--yta);border:1.5px solid var(--linje);
+  border-left:4px solid var(--fel);border-radius:var(--radie-s);
+  padding:.65rem .85rem;font-size:.9rem;
+}
+.facitrad.ok{border-left-color:var(--ratt)}
+.facitrad b{font-family:var(--display);display:block;font-size:.95rem;margin-bottom:.15rem}
+.facitrad small{color:var(--text-3)}
+
+/* ====================== FRAMSTEG ====================== */
+.formageruta{margin-bottom:1rem}
+.formagestapel{display:grid;grid-template-columns:auto 1fr auto;gap:.7rem;align-items:center;padding:.5rem 0}
+.formagestapel + .formagestapel{border-top:1px solid var(--linje)}
+.formagestapel .kod{
+  font-family:var(--mono);font-weight:700;font-size:.8rem;
+  width:26px;height:26px;display:grid;place-items:center;border-radius:7px;
+  background:var(--primar-mjuk);color:var(--primar);
+}
+.formagestapel .namn{font-size:.92rem}
+.formagestapel .namn small{display:block;color:var(--text-3);font-size:.76rem}
+.formagestapel .varde{font-family:var(--mono);font-weight:700;font-size:.85rem;font-variant-numeric:tabular-nums}
+
+.veckorad{display:flex;gap:.35rem;margin-top:.8rem}
+.dagsruta{
+  flex:1;aspect-ratio:1;border-radius:9px;background:var(--yta-2);
+  display:grid;place-items:center;font-family:var(--mono);font-size:.68rem;color:var(--text-3);
+}
+.dagsruta.klar{background:var(--guld);color:#3a2500;font-weight:700}
+.dagsruta.idag{outline:2px solid var(--primar);outline-offset:1px}
+
+/* ====================== LÄRARPANEL ====================== */
+.larartopp{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;padding:1.3rem 0 1rem}
+.larartopp h1{font-size:1.7rem}
+.kodruta{
+  font-family:var(--mono);font-weight:700;font-size:1.25rem;letter-spacing:.12em;
+  background:var(--primar-mjuk);color:var(--primar);
+  border:2px dashed var(--primar);border-radius:var(--radie-s);
+  padding:.5rem .9rem;
+}
+.flikar{display:flex;gap:.4rem;margin:1rem 0;flex-wrap:wrap}
+.flik{
+  background:var(--yta);border:1.5px solid var(--linje);border-radius:999px;
+  padding:.45rem .95rem;cursor:pointer;font-size:.88rem;font-weight:600;
+}
+.flik[aria-selected="true"]{background:var(--primar);color:var(--primar-text);border-color:var(--primar)}
+
+.tabellrullare{overflow-x:auto;border:1.5px solid var(--linje);border-radius:var(--radie);background:var(--yta)}
+table.klass{border-collapse:collapse;width:100%;font-size:.85rem;min-width:560px}
+table.klass th,table.klass td{padding:.5rem .6rem;text-align:left;border-bottom:1px solid var(--linje)}
+table.klass thead th{
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text-3);font-weight:400;background:var(--yta-2);position:sticky;top:0;
+}
+table.klass tbody tr:last-child td{border-bottom:0}
+table.klass tbody tr.jag{background:var(--primar-mjuk)}
+table.klass td.namn{font-weight:600;white-space:nowrap}
+.niv{
+  display:inline-grid;place-items:center;width:30px;height:26px;border-radius:7px;
+  font-family:var(--mono);font-size:.75rem;font-weight:700;
+}
+.niv.n0{background:var(--yta-2);color:var(--text-3)}
+.niv.n1,.niv.n2{background:var(--fel-mjuk);color:var(--fel-djup)}
+.niv.n3{background:var(--guld-mjuk);color:var(--guld)}
+.niv.n4,.niv.n5{background:var(--ratt-mjuk);color:var(--ratt-djup)}
+.senast{color:var(--text-3);font-size:.78rem;white-space:nowrap}
+
+.lektionsvy{text-align:center;padding:1.5rem 0}
+.lektionsvy .fraga{font-size:1.8rem}
+.svarsfordelning{display:grid;gap:.5rem;max-width:460px;margin:1rem auto 0}
+.fordelningsrad{display:grid;grid-template-columns:1fr 3rem;gap:.6rem;align-items:center}
+.fordelningsstapel{height:34px;background:var(--yta-2);border-radius:9px;position:relative;overflow:hidden}
+.fordelningsfyll{height:100%;background:var(--primar);border-radius:9px}
+.fordelningsfyll.ratt{background:var(--ratt)}
+.fordelningsrad .txt{
+  position:absolute;left:.7rem;top:50%;transform:translateY(-50%);
+  font-size:.88rem;font-weight:600;z-index:1;
+}
+
+/* ====================== ÖVRIGT ====================== */
+.tomtext{color:var(--text-3);text-align:center;padding:2.5rem 1rem;font-size:.92rem}
+.notis{
+  background:var(--guld-mjuk);border:1.5px solid var(--guld);border-radius:var(--radie-s);
+  padding:.75rem .9rem;font-size:.87rem;margin-bottom:1rem;
+}
+.notis b{color:var(--guld)}
+.installningsrad{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:.7rem 0;border-bottom:1px solid var(--linje);
+}
+.installningsrad:last-child{border-bottom:0}
+.installningsrad span{font-size:.94rem}
+.vippa{
+  width:50px;height:29px;border-radius:999px;background:var(--yta-3);
+  border:0;cursor:pointer;padding:3px;display:flex;flex:none;
+}
+.vippa[aria-checked="true"]{background:var(--ratt);justify-content:flex-end}
+.vippa i{width:23px;height:23px;border-radius:50%;background:#fff;display:block}
+
+@media (prefers-reduced-motion:no-preference){
+  .pulsa{animation:pulsa .34s ease}
+  @keyframes pulsa{0%{transform:scale(1)}45%{transform:scale(1.06)}100%{transform:scale(1)}}
+  .skaka{animation:skaka .3s ease}
+  @keyframes skaka{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .knapp,.alt,.nod,.uppdragskort{transition:border-color .12s ease,transform .06s ease}
+}
+
+/* ====================== HUB (rollväxlare) ====================== */
+.hub{min-height:100%;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.hub-inner{max-width:480px;width:100%}
+.hub-markesnamn{
+  font-family:var(--display);font-weight:800;font-size:1.3rem;letter-spacing:-.04em;
+  color:var(--text);margin-bottom:1.6rem;
+}
+.hub-markesnamn i{font-style:normal;color:var(--primar)}
+.hub-rubrik{font-size:2rem;margin-bottom:.5rem}
+.hub-under{color:var(--text-2);font-size:.95rem;margin:0 0 1.8rem;line-height:1.55}
+.hub-kort{display:grid;gap:.65rem}
+.hub-lank{
+  display:flex;align-items:center;gap:.9rem;text-decoration:none;color:var(--text);
+  background:var(--yta);border:1.5px solid var(--linje);
+  border-bottom:var(--knapp-djup) solid var(--linje-stark);
+  border-radius:var(--radie);padding:1rem 1.1rem;
+}
+.hub-lank:hover{border-color:var(--primar)}
+.hub-ikon{
+  width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:var(--primar-mjuk);color:var(--primar);
+}
+.hub-txt{flex:1;min-width:0}
+.hub-txt b{display:block;font-family:var(--display);font-size:1.08rem}
+.hub-txt small{color:var(--text-3);font-size:.85rem;display:block;margin-top:.1rem}
+.hub-pil{color:var(--text-3);display:flex}
+.hub-fotnot{color:var(--text-3);font-size:.78rem;margin-top:1.8rem;text-align:center}
+
+/* ====================== VISUALISERINGAR (bråk/tallinje) ====================== */
+.visual-yta{display:flex;justify-content:center;margin:.9rem 0}
+.visual-brak{width:100%;max-width:280px;color:var(--primar)}
+.visual-brak-fyll{fill:var(--primar-mjuk)}
+.visual-tallinje{width:100%;max-width:320px;color:var(--text-2)}
+.visual-tallinje-siffra{font-family:var(--mono);font-size:9px;fill:var(--text-3);stroke:none}
+.visual-tallinje-punkt{fill:var(--primar);stroke:var(--yta);stroke-width:2}
+
+/* ====================== LIKNANDE EXEMPEL (fastnat-flödet) ====================== */
+.liknande-exempel{
+  background:var(--guld-mjuk);border-left:3px solid var(--guld);
+  border-radius:0 var(--radie-s) var(--radie-s) 0;
+  padding:.85rem .95rem;margin-top:.8rem;
+}
+.liknande-exempel .etikett{color:var(--guld);display:block;margin-bottom:.3rem}
+.liknande-exempel h4{font-size:1rem;margin-bottom:.4rem}
+.liknande-exempel p{margin:0 0 .6rem;font-size:.92rem;color:var(--text-2)}
+.liknande-exempel .exempel{background:var(--yta);font-size:.88rem}
+
+/* ====================== UPPSTÄLLNING: strykning & guidat läge ====================== */
+.uppst-cell.fast.klickbar{cursor:pointer;border-radius:8px}
+.uppst-cell.fast.klickbar:hover{background:var(--yta-2)}
+.uppst-cell.fast.struken{position:relative;color:var(--text-3)}
+.uppst-cell.fast.struken::after{
+  content:"";position:absolute;left:6px;right:6px;top:50%;height:2px;
+  background:var(--fel);transform:rotate(-8deg);
+}
+.uppst input.justering{
+  width:42px;height:26px;font-size:.85rem;
+  background:var(--fel-mjuk);border-color:transparent;color:var(--fel-djup);
+}
+.uppst input.justering:focus{border-color:var(--fel)}
+.uppst-cell.markerad{
+  outline:2px solid var(--primar);outline-offset:2px;border-radius:8px;
+  background:var(--primar-mjuk);
+}
+.uppst input.markerad{outline:2px solid var(--primar);outline-offset:2px}
+.guidetext{
+  background:var(--primar-mjuk);border-radius:var(--radie-s);
+  padding:.75rem .9rem;margin-bottom:.8rem;font-size:.95rem;color:var(--text);
+  text-align:center;max-width:340px;
+}
+.guidetext b{color:var(--primar)}
