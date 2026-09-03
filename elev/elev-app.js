@@ -93,17 +93,16 @@ function toppraden() {
     el('div', { klass: 'topp-inner' },
       el('a', { klass: 'markesnamn', href: '#/' }, 'Rimligt', el('i', {}, '.')),
       el('span', { klass: 'statchip streak', title: 'Dagar i rad' }, ikon('eld', 15), String(S.streak.dagar)),
-      el('span', { klass: 'statchip xp', title: 'Total XP' }, String(S.xp), ' xp'),
-      el('button', { klass: 'ikonknapp', 'aria-label': 'Inställningar', onclick: () => gå('#/installningar') },
-        ikon('kugghjul', 18))
+      el('span', { klass: 'statchip xp', title: 'Total XP' }, String(S.xp), ' xp')
     )
   );
 }
 
 const NAV = [
-  { id: 'karta',    hash: '#/',         namn: 'Karta',    ikon: 'karta' },
-  { id: 'prov',     hash: '#/prov',     namn: 'Prov',     ikon: 'penna' },
-  { id: 'framsteg', hash: '#/framsteg', namn: 'Framsteg', ikon: 'stapel' }
+  { id: 'karta',        hash: '#/',               namn: 'Karta',        ikon: 'karta' },
+  { id: 'prov',         hash: '#/prov',           namn: 'Prov',         ikon: 'penna' },
+  { id: 'framsteg',     hash: '#/framsteg',       namn: 'Framsteg',     ikon: 'stapel' },
+  { id: 'installningar', hash: '#/installningar', namn: 'Inställningar', ikon: 'kugghjul' }
 ];
 function bottennav(aktiv) {
   return el('nav', { klass: 'botten', 'aria-label': 'Huvudmeny' },
@@ -1069,7 +1068,7 @@ function visaInstallningar() {
         }, 'Fyll med exempeldata'),
         el('button', { klass: 'knapp tyst liten', style: 'color:var(--fel)', onclick: () => { if (!confirm('Nollställ all progress?')) return; S = structuredClone(TOMT_ELEVSTATE); sparaState(); gå('#/'); router(); } }, 'Nollställ allt'))),
     el('p', { klass: 'kalla', style: 'text-align:center;margin-top:1.5rem' }, 'Rimligt — designutkast. Byggt efter frisläppta nationella prov åk 9, Skolverket / PRIM-gruppen.')
-  ], { navFlik: 'karta' });
+  ], { navFlik: 'installningar' });
 }
 
 /* ================================================================ START */
