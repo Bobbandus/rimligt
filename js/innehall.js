@@ -1078,7 +1078,7 @@ const PROV = [
     namn: 'Delprov B — utan digitala verktyg',
     beskrivning: 'Kortsvar, kalibrerat mot nationella provets delprov B. Full återkoppling — det här är övning, inte ett skarpt prov.',
     minuter: 40,
-    hjalpmedel: 'Linjal',
+    raknare: false,
     uppgifter: ['pri-1','pri-2','brk-1','brk-2','pot-1','pot-4','rim-1','rim-4','rim-3',
                 'var-2','var-4','for-2','ekv-2','mon-1','mon-2','pro-2']
   },
@@ -1088,7 +1088,7 @@ const PROV = [
     namn: 'Delprov D — med digitala verktyg',
     beskrivning: 'Längre uppgifter, kalibrerat mot nationella provets delprov D. Full återkoppling.',
     minuter: 50,
-    hjalpmedel: 'Miniräknare, formelblad, linjal',
+    raknare: true,
     uppgifter: ['var-p1','rim-5','var-p2','pro-1','pro-4','pro-5','var-p3','mod-1','mod-2',
                 'mod-3','ekv-4','ekv-5','var-p4','var-p5','mon-3','mon-4']
   },
@@ -1098,7 +1098,7 @@ const PROV = [
     namn: 'Startkoll åk 9',
     beskrivning: 'Bred diagnos över alla områden. Ger läraren en första bild.',
     minuter: 25,
-    hjalpmedel: 'Miniräknare',
+    raknare: true,
     uppgifter: ['pri-1','brk-3','pot-1','rim-1','rim-4','pro-6','var-1','for-1','ekv-1',
                 'mon-1','mod-1','var-p1','upp-1','upp-2','upp-3']
   }

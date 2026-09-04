@@ -17,6 +17,7 @@ const TOMT_ELEVSTATE = {
   provresultat: [],
   historik: [],
   settPinnade: [],
+  provKlara: [],
   installningar: { ljud: true, animationer: true, tema: 'auto' }
 };
 const ELEVLAGRING = skapaLagring('rimligt.elev.v1', TOMT_ELEVSTATE);
@@ -136,6 +137,7 @@ function bottennav(aktiv) {
 
 /* ============================================================== KARTAN */
 let kartaFilter = 'alla';   // 'alla' | 7 | 8 | 9 | 'repetition'
+let expanderadeOmraden = null;   // Set av omr.id — lazy-initieras i visaKarta()
 const KARTA_FILTER = [
   { id: 'alla', namn: 'Alla' },
   { id: 7, namn: 'Åk 7' },
@@ -228,14 +230,28 @@ function visaKarta() {
       onclick: () => { kartaFilter = fl.id; visaKarta(); }
     }, fl.namn))));
 
+  if (!expanderadeOmraden) {
+    const startOmr = nastaFardighet() ? OMRADEN.find(o => o.fardigheter.some(f => f.id === nastaFardighet().id)) : null;
+    expanderadeOmraden = new Set(startOmr ? [startOmr.id] : []);
+  }
+
   let visadeOmraden = 0;
   OMRADEN.forEach(omr => {
     const fardigheterHar = omr.fardigheter.filter(matcharFilter);
     if (!fardigheterHar.length) return;
     visadeOmraden++;
-    delar.push(el('div', { klass: 'omradesrubrik' },
-      el('h2', {}, omr.namn), el('span', { klass: 'strec' }),
+    const klaraIOmr = fardigheterHar.filter(f => niva(f) === 5).length;
+    const oppen = expanderadeOmraden.has(omr.id);
+    delar.push(el('button', {
+      klass: 'omradesrubrik omradesrubrik-knapp', 'aria-expanded': String(oppen),
+      onclick: () => { oppen ? expanderadeOmraden.delete(omr.id) : expanderadeOmraden.add(omr.id); visaKarta(); }
+    },
+      ikon('pilHoger', 15, 'omr-chevron' + (oppen ? ' oppen' : '')),
+      el('h2', {}, omr.namn),
+      el('span', { klass: 'etikett', style: 'margin-left:.3rem' }, `${klaraIOmr}/${fardigheterHar.length}`),
+      el('span', { klass: 'strec' }),
       omr.stodsspar ? el('span', { klass: 'etikett' }, 'stöd') : null));
+    if (!oppen) return;
     const stig = el('div', { klass: 'stig' });
     fardigheterHar.forEach(f => {
       const n = niva(f);
@@ -254,19 +270,6 @@ function visaKarta() {
     delar.push(el('p', { klass: 'tomtext' },
       kartaFilter === 'repetition' ? 'Inget att repetera än — börja en färdighet så dyker den upp här när den börjar blekna.'
                                     : 'Inget i den här årskursen än.'));
-  }
-
-  const ovningspass = PROV.filter(p => p.typ === 'ovning');
-  if (kartaFilter === 'alla' && ovningspass.length) {
-    delar.push(el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Övningspass'), el('span', { klass: 'strec' })));
-    delar.push(el('p', { klass: 'hjalptext', style: 'margin:-.5rem 0 .8rem' },
-      'Längre, kalibrerade övningsset med full återkoppling — inte ett skarpt prov.'));
-    const ovningsrad = el('div', { klass: 'uppdrag' });
-    ovningspass.forEach(p => ovningsrad.append(el('button', { klass: 'uppdragskort', onclick: () => gå(`#/ovning/${p.id}`) },
-      el('span', { klass: 'uk-ikon' }, ikon('lager', 18)),
-      el('span', { klass: 'uk-txt' }, el('b', {}, p.namn), el('span', { klass: 'uk-under' }, `${p.uppgifter.length} uppgifter · ca ${p.minuter} min`)),
-      ikon('pilHoger', 18))));
-    delar.push(ovningsrad);
   }
 
   skal(delar, { navFlik: 'karta' });
@@ -511,7 +514,7 @@ function visaOvningspass(provId) {
   if (!p) return gå('#/');
   const uppgifter = p.uppgifter.map(id => hittaUppgift(id)?.uppgift).filter(Boolean);
   if (!uppgifter.length) return gå('#/');
-  kor({ uppgifter, lage: 'trana', repetition: false, klar: res => visaOvningsPassKlart(p, res) });
+  kor({ uppgifter, lage: 'trana', repetition: false, prov: p, klar: res => visaOvningsPassKlart(p, res) });
 }
 
 function visaOvningsPassKlart(p, resultat) {
@@ -542,6 +545,65 @@ function korPinnadUppgift(p) {
 }
 
 /* ------------------------------------------------------ ÖVNINGSMOTORN */
+/* ============================================================= MINIRÄKNARE
+   Riktig fyrräknesätts-räknare, inte bara en text som säger "miniräknare
+   tillåten". Räknar vänster-till-höger utan prioriteringsordning, precis
+   som en fysisk skolräknare — inte som ett JS-uttryck. */
+function byggMiniraknare() {
+  let display = '0';
+  let forra = null, vantandeOp = null, nyttTal = true;
+  const displayEl = el('div', { klass: 'raknare-display' });
+  function rita() { displayEl.textContent = display; }
+  rita();
+
+  function siffra(s) {
+    if (nyttTal) { display = (s === ',') ? '0,' : s; nyttTal = false; }
+    else if (s === ',') { if (!display.includes(',')) display += ','; }
+    else { display = (display === '0') ? s : display + s; }
+    rita();
+  }
+  function berakna(a, op, b) {
+    if (op === '+') return a + b;
+    if (op === '−') return a - b;
+    if (op === '×') return a * b;
+    if (op === '÷') return b === 0 ? NaN : a / b;
+    return b;
+  }
+  function fmt(n) {
+    if (!Number.isFinite(n)) return 'Fel';
+    const r = Math.round(n * 1e8) / 1e8;
+    return String(r).replace('.', ',');
+  }
+  function tryckOp(op) {
+    const nu = Number(display.replace(',', '.'));
+    forra = (vantandeOp && !nyttTal) ? berakna(forra, vantandeOp, nu) : nu;
+    vantandeOp = op; nyttTal = true;
+    display = fmt(forra); rita();
+  }
+  function likhet() {
+    if (vantandeOp === null) return;
+    const nu = Number(display.replace(',', '.'));
+    forra = berakna(forra, vantandeOp, nu);
+    display = fmt(forra); vantandeOp = null; nyttTal = true; rita();
+  }
+  function rensa() { display = '0'; forra = null; vantandeOp = null; nyttTal = true; rita(); }
+
+  const grid = el('div', { klass: 'raknare-grid' });
+  [['7', '8', '9', '÷'], ['4', '5', '6', '×'], ['1', '2', '3', '−'], ['C', '0', ',', '+']]
+    .forEach(rad => rad.forEach(t => {
+      const arOp = ['÷', '×', '−', '+'].includes(t);
+      grid.append(el('button', {
+        klass: arOp ? 'op' : '', type: 'button',
+        onclick: () => { if (t === 'C') rensa(); else if (arOp) tryckOp(t); else siffra(t); }
+      }, t));
+    }));
+  grid.append(el('button', { klass: 'likhet', type: 'button', style: 'grid-column:span 4', onclick: likhet }, '='));
+
+  const panel = el('div', { klass: 'raknare-panel dold' }, displayEl, grid);
+  const flik = el('button', { klass: 'raknare-flik', 'aria-label': 'Miniräknare', onclick: () => panel.classList.toggle('dold') }, ikon('raknare', 22));
+  return { flik, panel };
+}
+
 function kor({ uppgifter, fardighet, lage, repetition = false, klar, prov = null }) {
   let i = 0;
   const resultat = [];
@@ -821,6 +883,14 @@ function kor({ uppgifter, fardighet, lage, repetition = false, klar, prov = null
   document.addEventListener('keydown', tangent);
   window.addEventListener('hashchange', () => document.removeEventListener('keydown', tangent), { once: true });
 
+  /* Miniräknaren: tillgänglig i Lär/Träna/pinnade uppgifter alltid (praktikläge),
+     men respekterar raknare:false på publicerade prov/övningspass. */
+  if (prov?.raknare !== false) {
+    const { flik, panel } = byggMiniraknare();
+    document.body.append(flik, panel);
+    window.addEventListener('hashchange', () => { flik.remove(); panel.remove(); }, { once: true });
+  }
+
   if (lage === 'prov') {
     document.body.classList.add('provlage');
     app.replaceChildren();
@@ -1027,15 +1097,31 @@ function beraknaMinnen(u) {
 }
 
 /* ================================================================ PROV */
+let provUnderflik = 'aktiva';   // 'aktiva' | 'ovning'
 function visaProvlista() {
+  const flikar = el('div', { klass: 'flikar', role: 'tablist' },
+    [['aktiva', 'Aktiva prov'], ['ovning', 'Övningspass']].map(([id, namn]) =>
+      el('button', { klass: 'flik', role: 'tab', 'aria-selected': provUnderflik === id ? 'true' : 'false', onclick: () => { provUnderflik = id; visaProvlista(); } }, namn)));
+
+  skal([
+    el('div', { klass: 'karta-topp' }, el('h1', { klass: 'halsning' }, 'Prov')),
+    flikar,
+    provUnderflik === 'aktiva' ? aktivaProvVy() : ovningspassVy()
+  ], { navFlik: 'prov' });
+}
+
+function aktivaProvVy() {
   const skola = lasSkola();
   const alla = skola.publiceradeProv || [];
   const aktiva = alla.filter(p => p.aktiv);
 
-  const kort = aktiva.map(p => el('button', { klass: 'uppdragskort', onclick: () => gå(`#/prov/${p.id}`) },
-    el('span', { klass: 'uk-ikon' }, ikon('penna', 18)),
-    el('span', { klass: 'uk-txt' }, el('b', {}, p.namn), el('span', { klass: 'uk-under' }, `${p.uppgiftIds.length} uppgifter · ${p.minuter} min · ${p.hjalpmedel}`)),
-    ikon('pilHoger', 18)));
+  const kort = aktiva.map(p => {
+    const klart = S.provKlara.includes(p.id);
+    return el('button', { klass: 'uppdragskort' + (klart ? ' gjort' : ''), onclick: () => gå(`#/prov/${p.id}`) },
+      el('span', { klass: 'uk-ikon' }, ikon(klart ? 'bock' : 'penna', 18)),
+      el('span', { klass: 'uk-txt' }, el('b', {}, p.namn), el('span', { klass: 'uk-under' }, klart ? 'Gjort · tryck för att göra om' : `${p.uppgiftIds.length + (p.egnaUppgifter || []).length} uppgifter · ${p.minuter} min`)),
+      ikon('pilHoger', 18));
+  });
 
   const kodFalt = el('input', { type: 'text', placeholder: 'T.ex. K7X2QM', style: 'text-transform:uppercase' });
   const kodMeddelande = el('p', { klass: 'hjalptext' });
@@ -1055,14 +1141,24 @@ function visaProvlista() {
   const tidigare = S.provresultat.slice(-4).reverse().map(r => el('div', { klass: 'facitrad ok', style: 'border-left-color:var(--primar)' },
     el('b', {}, r.namn), el('small', {}, `${r.datum} · ${r.ratta}/${r.antal} rätt · ${r.e}/${r.c}/${r.a} poäng`)));
 
-  skal([
-    el('div', { klass: 'karta-topp' }, el('h1', { klass: 'halsning' }, 'Prov'), el('p', { klass: 'halsning-under' }, 'Ingen återkoppling under provet. Allt kommer på slutet.')),
-    el('div', { klass: 'notis' }, el('b', {}, 'Så funkar det. '), 'Ingen XP, inga ledtrådar, ingen streak. Poängen anges i E/C/A precis som på nationella provet. Prov skapas och publiceras av din lärare.'),
+  return el('div', {},
+    el('p', { klass: 'notis' }, el('b', {}, 'Så funkar det. '), 'Ingen XP, inga ledtrådar, ingen streak. Poängen anges i E/C/A precis som på nationella provet. Prov skapas och publiceras av din lärare.'),
     kodrad, kodMeddelande,
     el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Aktiva prov'), el('span', { klass: 'strec' })),
     aktiva.length ? el('div', { klass: 'uppdrag' }, kort) : el('p', { klass: 'tomtext' }, 'Din lärare har inte publicerat något prov än.'),
-    tidigare.length ? el('div', {}, el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Tidigare resultat'), el('span', { klass: 'strec' })), el('div', { klass: 'facit' }, tidigare)) : null
-  ], { navFlik: 'prov' });
+    tidigare.length ? el('div', {}, el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Tidigare resultat'), el('span', { klass: 'strec' })), el('div', { klass: 'facit' }, tidigare)) : null);
+}
+
+function ovningspassVy() {
+  const ovningspass = PROV.filter(p => p.typ === 'ovning');
+  const rad = el('div', { klass: 'uppdrag' });
+  ovningspass.forEach(p => rad.append(el('button', { klass: 'uppdragskort', onclick: () => gå(`#/ovning/${p.id}`) },
+    el('span', { klass: 'uk-ikon' }, ikon('lager', 18)),
+    el('span', { klass: 'uk-txt' }, el('b', {}, p.namn), el('span', { klass: 'uk-under' }, `${p.uppgifter.length} uppgifter · ca ${p.minuter} min`)),
+    ikon('pilHoger', 18))));
+  return el('div', {},
+    el('p', { klass: 'notis' }, 'Längre, kalibrerade övningsset med full återkoppling — inte ett skarpt prov.'),
+    rad);
 }
 function provTopprad(prov, avsluta) {
   return el('div', { klass: 'provtopp' },
@@ -1076,7 +1172,7 @@ function visaProv(provId) {
   const skola = lasSkola();
   const p = (skola.publiceradeProv || []).find(x => x.id === provId);
   if (!p) return gå('#/prov');
-  const uppgifter = p.uppgiftIds.map(id => hittaUppgift(id)?.uppgift).filter(Boolean);
+  const uppgifter = p.uppgiftIds.map(id => hittaUppgift(id)?.uppgift).filter(Boolean).concat(p.egnaUppgifter || []);
   if (!uppgifter.length) return gå('#/prov');
   let sekunder = p.minuter * 60, timerId = null;
   kor({ uppgifter, lage: 'prov', prov: p, klar: res => { clearInterval(timerId); visaProvresultat(p, res); } });
@@ -1105,6 +1201,7 @@ function visaProvresultat(p, resultat) {
     });
   });
   S.provresultat.push({ namn: p.namn, datum: idag(), ratta, antal: resultat.length, e: poang.e, c: poang.c, a: poang.a });
+  if (!S.provKlara.includes(p.id)) S.provKlara.push(p.id);
   sparaState();
 
   const staplar = Object.entries(perFormaga).map(([k, v]) => {
@@ -1112,24 +1209,16 @@ function visaProvresultat(p, resultat) {
     return el('div', { klass: 'stapel' }, el('span', {}, FORMAGOR[k].namn),
       el('span', { klass: 'stapel-spar' }, el('span', { klass: 'stapel-fyll', style: `width:${pct}%` })), el('b', {}, `${v.fick}/${v.max}`));
   });
-  const facit = resultat.map((r, k) => {
-    const u = r.uppgift;
-    return el('div', { klass: 'facitrad' + (r.korrekt ? ' ok' : '') },
-      el('b', {}, `${k + 1}. ${r.korrekt ? '✓' : '✗'} ${u.fraga.slice(0, 78)}${u.fraga.length > 78 ? '…' : ''}`),
-      el('small', {}, `${u.poang.e}/${u.poang.c}/${u.poang.a} · ${(u.formagor || []).join(' ')}${r.korrekt ? '' : ' · ditt svar: ' + (r.svar ?? '—')}`),
-      !r.korrekt ? el('div', { style: 'margin-top:.4rem' }, el('button', {
-        klass: 'knapp tyst liten', onclick: () => { const t = hittaUppgift(u.id); if (t) gå(`#/trana/${t.fardighet.id}`); }
-      }, 'Träna det här →')) : null);
-  });
 
+  /* Ingen fråga-för-fråga-facit här med avsikt: annars kan man göra om samma prov
+     och bara rätta det man nu vet var fel — poäng totalt och per förmåga räcker. */
   skal(el('div', { style: 'padding-top:1.5rem' },
     el('span', { klass: 'etikett' }, 'Provresultat'), el('h1', { style: 'font-size:1.7rem;margin:.2rem 0 1rem' }, p.namn),
     el('div', { klass: 'kort resultatkort' },
       el('div', { klass: 'resultat-stor' }, `${poang.e}/${poang.c}/${poang.a}`),
       el('p', { style: 'color:var(--text-3);font-size:.85rem;margin:.3rem 0 0' }, `av max ${maxPoang.e}/${maxPoang.c}/${maxPoang.a} · ${ratta} av ${resultat.length} uppgifter rätt`)),
     el('div', { klass: 'kort', style: 'margin-top:.7rem' }, el('span', { klass: 'etikett' }, 'Per förmåga'), el('div', { klass: 'stapelrad' }, staplar)),
-    el('div', { klass: 'omradesrubrik' }, el('h2', {}, 'Genomgång'), el('span', { klass: 'strec' })),
-    el('div', { klass: 'facit' }, facit),
+    el('p', { klass: 'hjalptext', style: 'margin-top:.8rem' }, 'Din lärare kan se hela genomgången. Fråga om du vill veta mer om vad som gick bra eller mindre bra.'),
     el('button', { klass: 'knapp bred stor', style: 'margin-top:1.2rem', onclick: () => gå('#/prov') }, 'Tillbaka')
   ), { navFlik: 'prov' });
 }

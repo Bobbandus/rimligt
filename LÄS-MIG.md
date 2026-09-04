@@ -38,6 +38,22 @@ rimligt/
   kommun/  index.html, kommun-app.js       hela kommunen, aldrig namngivna elever
 ```
 
+## Vad som är nytt i den senaste rundan (v4)
+
+- **Sidan hoppar inte längre** vid fliksbyten (var en scrollist-bugg, `scrollbar-gutter:stable`).
+- **Alla guldfärgade notis-rutor är borta** — samma information, men som vanlig text.
+- **Elevens startsida är avlastad**: färdighetslistorna är hopfällbara (bara nästa
+  färdighet startar utfälld), och Övningspass har flyttat till en egen underflik på
+  Prov-sidan istället för att ligga på Kartan.
+- **Läraren kan skriva egna frågor direkt i provbyggaren** — inte bara plocka ur banken.
+- **Provresultatet läcker inte längre facit**: bara E/C/A-poäng och per-förmåga-uppdelning
+  visas, ingen fråga-för-fråga-lista — annars går det att göra om provet och bara rätta
+  det man vet blev fel. Ett gjort prov visas nedtonat ("Gjort — gör om") i Prov-fliken.
+- **Riktig inbyggd miniräknare**, en flytande knapp under Lär/Träna/Prov/Övning. Fyra
+  räknesätt, räknar vänster-till-höger utan prioriteringsordning (som en riktig
+  skolräknare). Respekterar om ett prov/övningspass är markerat utan miniräknare — texten
+  "Linjal"/"Miniräknare, formelblad, linjal" är borta, ersatt av en enkel av/på-växel.
+
 ## Vad som är nytt sedan förra rundan
 
 **Bugfix**
@@ -58,7 +74,7 @@ rimligt/
 - De gamla delprov B/D lever kvar som **Övningspass** på Kartan, med full återkoppling
   (ledtrådar, rättning direkt) — det är övning, inte ett skarpt prov.
 - Lärare → Uppgifter har nu även **Skapa & publicera ett prov**: välj en mall eller kryssa
-  ihop egna uppgifter, sätt tid/hjälpmedel/kod, publicera.
+  ihop egna uppgifter (eller skriv nya direkt i provet), sätt tid/miniräknare/kod, publicera.
 
 **Personal vs Elev, + Rektor & mentor**
 - Rollerna är omstrukturerade: Elev för sig, Personal samlar Lärare/Rektor & mentor/Kommun.

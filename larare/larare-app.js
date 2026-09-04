@@ -234,15 +234,18 @@ function uppgiftsvy() {
     return Array.from({ length: 6 }, () => t[Math.floor(Math.random() * t.length)]).join('');
   }
 
+  let egnaFragor = [];   // uppgiftsobjekt skrivna direkt för det här provet
+
   function ritaProvLista() {
     provLista.replaceChildren();
     const aktiva = (SKOLA.publiceradeProv || []).filter(p => p.aktiv);
     if (!aktiva.length) { provLista.append(el('p', { klass: 'tomtext' }, 'Inget prov publicerat än.')); return; }
     aktiva.slice().reverse().forEach(p => {
+      const antal = p.uppgiftIds.length + (p.egnaUppgifter || []).length;
       provLista.append(el('div', { klass: 'facitrad ok', style: 'display:flex;align-items:center;gap:.8rem;border-left-color:var(--guld)' },
         el('div', { style: 'flex:1' },
           el('b', {}, p.namn),
-          el('small', { style: 'display:block;margin-top:.15rem' }, `${p.uppgiftIds.length} uppgifter · ${p.minuter} min · kod `),
+          el('small', { style: 'display:block;margin-top:.15rem' }, `${antal} uppgifter · ${p.minuter} min · ${p.raknare ? 'miniräknare tillåten' : 'utan miniräknare'} · kod `),
           el('span', { klass: 'eca-chip', style: 'margin-top:.2rem;display:inline-block' }, p.kod)),
         el('button', { klass: 'knapp tyst liten', style: 'color:var(--fel)', onclick: () => { p.aktiv = false; sparaSkola(); ritaProvLista(); } },
           ikon('papperskorg', 15))));
@@ -253,8 +256,12 @@ function uppgiftsvy() {
     provFormular.replaceChildren();
     const namnInp = el('input', { type: 'text', placeholder: 'T.ex. "Diagnos: bråk och procent"' });
     const minInp = el('input', { type: 'number', min: '5', value: '25' });
-    const hjInp = el('input', { type: 'text', value: 'Miniräknare' });
     const kodInp = el('input', { type: 'text', value: slumpKod(), style: 'text-transform:uppercase;font-family:var(--mono)' });
+    let raknareTillaten = true;
+    const raknareKnapp = el('button', {
+      klass: 'knapp liten', type: 'button',
+      onclick: e => { raknareTillaten = !raknareTillaten; e.currentTarget.textContent = raknareTillaten ? 'Miniräknare tillåten ✓' : 'Miniräknare ej tillåten'; e.currentTarget.classList.toggle('tyst', !raknareTillaten); }
+    }, 'Miniräknare tillåten ✓');
 
     const mallVal = el('select', { style: 'width:100%;padding:.6rem .7rem;border:2px solid var(--linje);border-radius:var(--radie-s);background:var(--yta);color:var(--text);font-family:inherit;font-size:.95rem' },
       el('option', { value: '' }, '— Bygg eget nedan —'),
@@ -263,7 +270,8 @@ function uppgiftsvy() {
       const mall = PROV.find(p => p.id === mallVal.value);
       valdaUppgifter.clear();
       if (mall) {
-        namnInp.value = mall.namn; minInp.value = mall.minuter; hjInp.value = mall.hjalpmedel;
+        namnInp.value = mall.namn; minInp.value = mall.minuter;
+        raknareTillaten = !!mall.raknare; raknareKnapp.textContent = raknareTillaten ? 'Miniräknare tillåten ✓' : 'Miniräknare ej tillåten'; raknareKnapp.classList.toggle('tyst', !raknareTillaten);
         mall.uppgifter.forEach(id => valdaUppgifter.add(id));
       }
       ritaKryssruteLista();
@@ -283,6 +291,33 @@ function uppgiftsvy() {
     }
     ritaKryssruteLista();
 
+    /* ---- Egna frågor, skrivna direkt för det här provet ---- */
+    const egnaLista = el('div', { style: 'display:grid;gap:.4rem;margin-top:.5rem' });
+    function ritaEgnaLista() {
+      egnaLista.replaceChildren();
+      egnaFragor.forEach((u, idx) => egnaLista.append(el('div', { klass: 'facitrad', style: 'display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem' },
+        el('small', { style: 'flex:1' }, u.fraga.slice(0, 70) + (u.fraga.length > 70 ? '…' : '')),
+        el('button', { klass: 'knapp tyst liten', style: 'color:var(--fel)', onclick: () => { egnaFragor.splice(idx, 1); ritaEgnaLista(); } }, ikon('papperskorg', 14)))));
+    }
+    ritaEgnaLista();
+
+    const eFragaInp = el('textarea', { rows: '2', placeholder: 'Skriv en fråga bara för det här provet…', style: 'width:100%;font-family:inherit;font-size:.9rem;padding:.55rem .65rem;border:2px solid var(--linje);border-radius:var(--radie-s);background:var(--yta);color:var(--text);resize:vertical' });
+    const eSvarInp = el('input', { type: 'text', placeholder: 'Rätt svar' });
+    const eLaggTillKnapp = el('button', {
+      klass: 'knapp tyst liten', type: 'button', onclick: () => {
+        if (!eFragaInp.value.trim() || !eSvarInp.value.trim()) { alert('Fråga och svar krävs.'); return; }
+        egnaFragor.push({
+          id: 'ep' + Date.now() + Math.floor(Math.random() * 1000), typ: 'number',
+          fraga: eFragaInp.value.trim(), ratt: tolkaTal(eSvarInp.value),
+          formagor: ['M'], poang: { e: 1, c: 0, a: 0 }, eca: 'E',
+          ledtradar: ['Ingen extra ledtråd tillagd för den här frågan.'],
+          losning: ['Fråga din lärare om du vill se en fullständig lösning.']
+        });
+        eFragaInp.value = ''; eSvarInp.value = '';
+        ritaEgnaLista();
+      }
+    }, ikon('plus', 14), ' Lägg till egen fråga');
+
     provFormular.append(
       el('span', { klass: 'etikett' }, 'Skapa & publicera ett prov'),
       el('h3', { style: 'margin-bottom:.7rem' }, 'Nytt prov till klassen'),
@@ -290,22 +325,24 @@ function uppgiftsvy() {
         felt('Utgå från en mall (valfritt)', mallVal),
         felt('Namn', namnInp),
         el('div', { style: 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem' },
-          felt('Minuter', minInp), felt('Hjälpmedel', hjInp), felt('Kod', kodInp)),
-        felt('Uppgifter (kryssa i, minst en)', kryssrutor)
+          felt('Minuter', minInp), felt('Miniräknare', raknareKnapp), felt('Kod', kodInp)),
+        felt('Egna frågor för det här provet (valfritt)', el('div', {}, egnaLista, el('div', { style: 'display:grid;gap:.4rem;margin-top:.5rem' }, eFragaInp, eSvarInp, eLaggTillKnapp))),
+        felt('Uppgifter från banken (kryssa i, minst en egen eller en bank-uppgift)', kryssrutor)
       ),
       el('div', { style: 'margin-top:1rem' },
         el('button', {
           klass: 'knapp', onclick: () => {
-            if (!namnInp.value.trim() || !valdaUppgifter.size) { alert('Namn och minst en uppgift krävs.'); return; }
+            if (!namnInp.value.trim() || (!valdaUppgifter.size && !egnaFragor.length)) { alert('Namn och minst en uppgift (bank eller egen) krävs.'); return; }
             SKOLA.publiceradeProv = SKOLA.publiceradeProv || [];
             SKOLA.publiceradeProv.push({
               id: 'prv' + Date.now(), namn: namnInp.value.trim(),
-              uppgiftIds: [...valdaUppgifter], minuter: Number(minInp.value) || 25,
-              hjalpmedel: hjInp.value.trim() || 'Inga', kod: kodInp.value.trim().toUpperCase() || slumpKod(),
+              uppgiftIds: [...valdaUppgifter], egnaUppgifter: egnaFragor.slice(),
+              minuter: Number(minInp.value) || 25,
+              raknare: raknareTillaten, kod: kodInp.value.trim().toUpperCase() || slumpKod(),
               klass: DEMOKLASS.namn, publicerad: idag(), aktiv: true
             });
             sparaSkola();
-            valdaUppgifter.clear();
+            valdaUppgifter.clear(); egnaFragor = [];
             ritaProvFormular(); ritaProvLista();
           }
         }, ikon('skicka', 16), ' Publicera prov')
